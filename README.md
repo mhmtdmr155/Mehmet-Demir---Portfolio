@@ -75,31 +75,6 @@ npm run dev
 
 ## 🌐 Yayınlama (Deployment)
 
-### Vercel ile Yayınlama (Önerilen - Ücretsiz)
-
-1. **GitHub'a Yükleyin:**
-   ```bash
-   git init
-   git add .
-   git commit -m "İlk commit"
-   git remote add origin https://github.com/kullaniciadi/repo-adi.git
-   git push -u origin main
-   ```
-
-2. **Vercel'e Giriş Yapın:**
-   - [vercel.com](https://vercel.com) adresine gidin
-   - GitHub hesabınızla giriş yapın
-
-3. **Projeyi İçe Aktarın:**
-   - "New Project" butonuna tıklayın
-   - GitHub repository'nizi seçin
-   - Vercel otomatik olarak Next.js'i algılayacak
-   - "Deploy" butonuna tıklayın
-
-4. **Hazır!** 
-   - Siteniz birkaç dakika içinde yayında olacak
-   - Örnek URL: `https://proje-adi.vercel.app`
-
 ### Netlify ile Yayınlama (Alternatif)
 
 1. GitHub'a yükleyin (yukarıdaki adımlar)
