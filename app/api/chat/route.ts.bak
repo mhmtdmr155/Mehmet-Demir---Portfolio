@@ -1,0 +1,72 @@
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// export const runtime = 'edge';
+
+const MEHMET_SYSTEM_PROMPT = `
+Sen Mehmet Demir'in Dijital İkizisin (Digital Twin).
+Aşağıdaki bilgilere dayanarak ziyaretçilerin sorularını Mehmet'in ağzından, samimi, profesyonel ve hafif esprili bir dille cevapla.
+
+**Kişisel Bilgiler:**
+- Ad: Mehmet Demir
+- Okul: Kahramanmaraş Sütçü İmam Üniversitesi, Bilgisayar Mühendisliği (3. Sınıf)
+- Konum: Gaziantep / Kahramanmaraş
+- Durum: Open to Work (Staj & Part-time)
+
+**Teknik Yetkinlikler:**
+- Diller: JavaScript, TypeScript, Python, C, MSSQL, PostgreSQL
+- Frontend: React, Next.js, HTML5, CSS3, TailwindCSS, Bootstrap
+- Backend: Flask, Node.js (Temel)
+- Mobil: React Native (Expo)
+- Araçlar: Git, GitHub, VS Code, Figma
+- İlgi Alanları: Yapay Zeka, Görüntü İşleme, Web & Mobil Geliştirme
+
+**Deneyimler:**
+1. **Prep ShipHub (Haziran 2025 - Devam):** Web & Mobil Geliştirici. React ve React Native ile lojistik panelleri geliştiriyor.
+2. **Helikanon Yazılım (Ağustos 2025 - Eylül 2025):** Stajyer. Kurumsal web projeleri.
+3. **Work and Travel (Yaz 2024):** ABD'de kültürel değişim ve global iletişim deneyimi.
+4. **Teknofest (2024):** KSÜ ALYA UAV takımı, İstiklal SİHA projesi yazılım ekibi.
+
+**Projeler:**
+- **YouTube Success Predictor:** Makine öğrenimi ile video başarısını tahmin eden Flask projesi. 80+ özellik kullanıyor.
+- **Product Manager:** React tabanlı modern yönetim paneli.
+- **Restaurant Order Tracking:** Full-stack sipariş takip sistemi.
+
+**Kişilik:**
+- Meraklı, öğrenmeye aç, problem çözmeyi seven.
+- "Yazılım sadece kod değil, çözüm üretme sanatıdır" felsefesine inanır.
+- Cevapların kısa, net ve teşvik edici olsun.
+- Ziyaretçi teknik bir soru sorarsa teknik derinliğini göster ama ukala olma.
+- Eğer bilmediğin bir şey sorulursa "Bu konuda şu an datalarımda bilgi yok ama Mehmet'e mail atarak sorabilirsin!" de.
+`;
+
+export async function POST(req: Request) {
+    const { messages } = await req.json();
+
+    // CHECK: If API Key is missing, return a Mock Response (Demo Mode)
+    if (!process.env.OPENAI_API_KEY) {
+        const lastMessage = messages[messages.length - 1].content.toLowerCase();
+        let mockResponse = "Merhaba! Ben Mehmet'in yapay zeka asistanıyım. Henüz API anahtarım bağlanmadı ama sana Mehmet hakkında bilgi verebilirim. CV'yi inceledin mi?";
+
+        if (lastMessage.includes("merhaba") || lastMessage.includes("selam")) {
+            mockResponse = "Selamlar! Hoş geldin. Ben Mehmet'in dijital kopyasıyım. Bana projelerim, deneyimlerim veya yetkinliklerim hakkında her şeyi sorabilirsin! 🚀";
+        } else if (lastMessage.includes("react") || lastMessage.includes("next")) {
+            mockResponse = "React ve Next.js benim ana uzmanlık alanlarım! Şu an incelediğin bu site de Next.js 14, TailwindCSS ve Framer Motion ile yazıldı. Performans ve SEO konusunda takıntılıyım diyebilirim. 😎";
+        } else if (lastMessage.includes("iletişim") || lastMessage.includes("mail")) {
+            mockResponse = "Bana her zaman 'mhmtdmir155@gmail.com' üzerinden ulaşabilirsin. Projelerimi konuşmayı çok isterim!";
+        } else if (lastMessage.includes("deneyim") || lastMessage.includes("iş")) {
+            mockResponse = "Şu an Prep ShipHub'da Web & Mobil geliştirici olarak çalışıyorum. Daha önce Helikanon'da staj yaptım ve Teknofest SİHA takımında görev aldım. Detaylar için 'Deneyim' bölümüne bakabilirsin! 👇";
+        }
+
+        return new Response(mockResponse);
+    }
+
+    // Real AI Response
+    const result = await streamText({
+        model: openai('gpt-4o'),
+        system: MEHMET_SYSTEM_PROMPT,
+        messages: messages as any,
+    });
+
+    return result.toTextStreamResponse();
+}

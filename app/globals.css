@@ -1,0 +1,436 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-width: 15rem;
+  /* Midnight Pro Theme (Default Dark) */
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0f;
+  --bg-tertiary: #12121a;
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+  --text-tertiary: #64748b;
+  /* Slate 500 */
+  --accent-primary: #00f3ff;
+  /* Electric Cyan */
+  --accent-secondary: #bd00ff;
+  /* Deep Violet */
+  --accent-tertiary: #7000ff;
+  /* Electric Indigo */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --shadow-color: rgba(0, 243, 255, 0.1);
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+[data-theme="light"] {
+  /* Premium Soft Theme (Light) */
+  --bg-primary: #f0f4f8;
+  /* Soft Ice Blue Gray */
+  --bg-secondary: #ffffff;
+  /* Pure White */
+  --bg-tertiary: #e2e8f0;
+  /* Light Slate */
+  --text-primary: #0f172a;
+  /* Slate 900 */
+  --text-secondary: #475569;
+  /* Slate 700 */
+  --text-tertiary: #64748b;
+  /* Slate 500 */
+  --accent-primary: #2563eb;
+  /* Royal Blue */
+  --accent-secondary: #7c3aed;
+  /* Vibrant Violet */
+  --accent-tertiary: #4f46e5;
+  /* Indigo */
+  --border-color: rgba(148, 163, 184, 0.2);
+  /* Subtle Slate Border */
+  --shadow-color: rgba(148, 163, 184, 0.15);
+  /* Soft Shadow */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  width: 100%;
+  min-height: 100vh;
+  /* Prevent FOUC - Force initial render */
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+}
+
+/* Loading Screen Overlay - Ensure it's always on top */
+body:has([data-loading-screen]),
+html:has([data-loading-screen]),
+body:has(#loading-screen-root) {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+/* Loading Screen Styles - Maximum Priority */
+#loading-screen-root,
+.loading-screen-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(to bottom right, #0a0d1a, #0f1420, #1a1f35) !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+
+[data-loading-screen="true"] {
+  position: fixed !important;
+  z-index: 999999 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Ensure all sections are centered */
+section {
+  width: 100%;
+  display: block;
+}
+
+/* Container centering */
+.max-w-7xl,
+.max-w-5xl,
+.max-w-4xl,
+.max-w-3xl,
+.max-w-2xl {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent anchor targets from hiding behind the fixed navbar */
+section[id] {
+  scroll-margin-top: 0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-tertiary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@media (max-width: 768px) {
+  .gradient-text {
+    animation: none;
+    -webkit-text-fill-color: var(--accent-primary);
+    /* Simplified color */
+    background: none;
+  }
+}
+
+@keyframes gradient-shift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+}
+
+/* Glow Effects */
+.glow-purple {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+/* Animated Background Blobs */
+@keyframes blob {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(50px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 20s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animation-delay-6000 {
+  animation-delay: 6s;
+}
+
+/* Floating Animation */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse Animation */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Card Hover Effect */
+.card-hover {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.2);
+}
+
+/* Gradient Border */
+.gradient-border {
+  position: relative;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary));
+  /* Mask property for compatibility */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* Text Gradient Animation */
+@keyframes text-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.text-shimmer {
+  background: linear-gradient(90deg, var(--text-primary) 0%, var(--accent-primary) 50%, var(--text-primary) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-shimmer 3s linear infinite;
+}
+
+/* Hide scrollbar (for horizontal nav on desktop) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth transitions for all interactive elements - FASTER */
+a,
+button,
+input,
+textarea,
+select {
+  transition: all 0.15s ease;
+}
+
+/* Enhanced focus styles */
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Better image rendering */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+/* Mobile Performance Optimizations */
+@media (max-width: 768px) {
+  * {
+    /* Disable heavy animations on mobile */
+    animation-duration: 0s !important;
+    transition-duration: 0.1s !important;
+  }
+
+  /* Keep essential reduced motion behavior references if needed, 
+     but aggressively kill decorative ones */
+  .animate-blob,
+  .animate-float,
+  .text-shimmer,
+  .gradient-text,
+  .animate-pulse-glow {
+    animation: none !important;
+    background-size: 100% 100% !important;
+    /* Fix gradient animations locking up */
+    background-clip: border-box !important;
+    /* Fallback for complex clips */
+    -webkit-background-clip: border-box !important;
+  }
+
+  /* Reduce blur intensity globally on mobile */
+  .glass,
+  [class*="backdrop-blur-"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 10, 15, 0.95) !important;
+    /* Solid fallback background */
+  }
+
+  /* Remove heavy shadows */
+  [class*="shadow-"],
+  .glow-purple,
+  .glow-blue {
+    box-shadow: none !important;
+  }
+
+  /* Disable will-change to save memory */
+  .will-change-transform {
+    will-change: auto !important;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .animate-blob,
+  .animate-float,
+  .text-shimmer,
+  .gradient-text,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
