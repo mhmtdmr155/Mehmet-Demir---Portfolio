@@ -16,7 +16,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Mehmet Demir - Portfolio",
   description: "Yazılım geliştirme yolculuğum, projelerim ve yetkinliklerim",
-  metadataBase: new URL("https://mehmetdemir.com"),
+  metadataBase: new URL("https://mehmetdemir.blog"),
   icons: {
     icon: [
       { url: "/icon.png", sizes: "512x512", type: "image/png" },
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description: "Yazılım geliştirme yolculuğum, projelerim ve yetkinliklerim",
     type: "website",
     locale: "tr_TR",
-    url: "https://mehmetdemir.com",
+    url: "https://mehmetdemir.blog",
     images: [
       {
         url: "/og-image.png",
