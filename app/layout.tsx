@@ -17,6 +17,37 @@ export const metadata: Metadata = {
   title: "Mehmet Demir - Portfolio",
   description: "Yazılım geliştirme yolculuğum, projelerim ve yetkinliklerim",
   metadataBase: new URL("https://mehmetdemir.blog"),
+  alternates: {
+    canonical: "https://mehmetdemir.blog",
+  },
+  applicationName: "Mehmet Demir Portfolio",
+  keywords: [
+    "Mehmet Demir",
+    "Portfolio",
+    "Yazılım Geliştirici",
+    "Full Stack Developer",
+    "React",
+    "Next.js",
+    "React Native",
+    "Python",
+  ],
+  authors: [{ name: "Mehmet Demir", url: "https://mehmetdemir.blog" }],
+  creator: "Mehmet Demir",
+  publisher: "Mehmet Demir",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  verification: {
+    google: "xMwYGaRP_WSKS-Ko2RvpmGapPFlNlMak3iFVPsfEPN8",
+  },
   icons: {
     icon: [
       { url: "/icon.png", sizes: "512x512", type: "image/png" },
@@ -29,6 +60,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "tr_TR",
     url: "https://mehmetdemir.blog",
+    siteName: "Mehmet Demir Portfolio",
     images: [
       {
         url: "/og-image.png",
