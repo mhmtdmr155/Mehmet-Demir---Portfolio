@@ -147,18 +147,22 @@ export default function Contact() {
       setTimeout(() => {
         setStatus("idle");
       }, 5000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("EmailJS Error:", error);
       
       // Daha detaylı hata mesajı
       let errorMsg = "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
-      
-      if (error?.text) {
-        errorMsg = `EmailJS Hatası: ${error.text}`;
-      } else if (error?.message) {
-        errorMsg = error.message;
-      } else if (error?.status) {
-        errorMsg = `EmailJS Hatası (${error.status}): ${error.text || "Bilinmeyen hata"}`;
+      const errorObj = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+      const errorText = errorObj && typeof errorObj.text === "string" ? errorObj.text : "";
+      const errorMessage = errorObj && typeof errorObj.message === "string" ? errorObj.message : "";
+      const errorStatus = errorObj && typeof errorObj.status === "number" ? errorObj.status : null;
+
+      if (errorText) {
+        errorMsg = `EmailJS Hatası: ${errorText}`;
+      } else if (errorMessage) {
+        errorMsg = errorMessage;
+      } else if (errorStatus !== null) {
+        errorMsg = `EmailJS Hatası (${errorStatus}): ${errorText || "Bilinmeyen hata"}`;
       }
       
       setStatus("error");

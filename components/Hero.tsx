@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { HiDownload, HiMail, HiArrowDown } from "react-icons/hi";
+import { HiDownload, HiMail } from "react-icons/hi";
 import { FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 
 const socialLinks = [
@@ -128,7 +128,7 @@ export default function Hero() {
                       link.href = "/MEHMET DEMİR CV.pdf";
                       link.download = "MEHMET DEMİR CV.pdf";
                       link.click();
-                    } catch (e) {
+                    } catch {
                       window.open("/MEHMET DEMİR CV.pdf", "_blank");
                     }
                   }}

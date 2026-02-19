@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef } from "react";
 import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import Image from "next/image";
 import { HiCode, HiLightBulb, HiAcademicCap, HiSparkles } from "react-icons/hi";
 import SectionHeader from "./SectionHeader";
-import { useRef } from "react";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useIsClient } from "../hooks/useIsClient";
 
 const skills = [
   { icon: HiCode, text: "Web Geliştirme", description: "Modern web teknolojileri", gradient: "from-blue-500 to-cyan-500" },
@@ -17,28 +17,12 @@ const skills = [
 ];
 
 export default function About() {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
   const shouldReduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
-  const shouldAnimate = mounted && !shouldReduceMotion && !isMobile;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Memoize animation variants - ULTRA FAST
-  const containerVariants: Variants = useMemo(() => ({
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.08,
-      }
-    }
-  }), []);
+  const shouldAnimate = isClient && !shouldReduceMotion && !isMobile;
 
   const itemVariants: Variants = useMemo(() => ({
     hidden: { opacity: 0, y: 12 },
@@ -175,7 +159,7 @@ export default function About() {
                       Global Deneyim
                     </h4>
                     <p className="text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed">
-                      ABD'de katıldığım <span className="font-bold text-[var(--accent-primary)]">Work and Travel</span> programı sayesinde global iletişim yeteneklerimi geliştirdim ve kültürlerarası çalışma deneyimi kazandım.
+                      ABD&apos;de katıldığım <span className="font-bold text-[var(--accent-primary)]">Work and Travel</span> programı sayesinde global iletişim yeteneklerimi geliştirdim ve kültürlerarası çalışma deneyimi kazandım.
                     </p>
                   </div>
                 </div>

@@ -4,10 +4,11 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import Image from "next/image";
 import { AnimatePresence } from "framer-motion";
-import { HiExternalLink, HiCode, HiFolder } from "react-icons/hi";
+import { HiExternalLink, HiFolder } from "react-icons/hi";
 import { FaGithub } from "react-icons/fa";
 import SectionHeader from "./SectionHeader";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useIsClient } from "../hooks/useIsClient";
 
 const projects = [
   {
@@ -49,7 +50,7 @@ const projects = [
 ];
 
 export default function Projects() {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
   const [showAll, setShowAll] = useState(false);
   const [activeTech, setActiveTech] = useState<string>("Tümü");
   const [selectedProject, setSelectedProject] = useState<(typeof projects)[number] | null>(null);
@@ -57,11 +58,7 @@ export default function Projects() {
   const isMobile = useIsMobile();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.1 });
-  const shouldAnimate = mounted && !shouldReduceMotion && !isMobile;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const shouldAnimate = isClient && !shouldReduceMotion && !isMobile;
 
   // Memoize allTechs to avoid recalculation
   const allTechs = useMemo(() =>
@@ -91,17 +88,6 @@ export default function Projects() {
     window.addEventListener("keydown", handleKeyDown, { passive: true });
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedProject, handleKeyDown]);
-
-  // Memoize animation variants - ULTRA FAST
-  const containerVariants: Variants = useMemo(() => ({
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-      }
-    }
-  }), []);
 
   const itemVariants: Variants = useMemo(() => ({
     hidden: { opacity: 0, y: 15 },

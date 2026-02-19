@@ -2,28 +2,28 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useIsClient } from "../hooks/useIsClient";
 
 export default function LoadingScreen() {
-  const [isLoading, setIsLoading] = useState(true);
+  const isClient = useIsClient();
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return localStorage.getItem("md_hasVisited") !== "true";
+    } catch {
+      return true;
+    }
+  });
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState("Sistem Başlatılıyor...");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
-    if (typeof document === 'undefined') return;
-
-    const hasVisited = localStorage.getItem("md_hasVisited") === "true";
-    if (hasVisited) {
-      setIsLoading(false);
-      return;
-    }
+    if (!isLoading) return;
+    if (typeof document === "undefined") return;
 
     // Prevent scrolling
-    document.body.style.overflow = 'hidden';
-    document.documentElement.setAttribute('data-loading-screen', 'true');
+    document.body.style.overflow = "hidden";
+    document.documentElement.setAttribute("data-loading-screen", "true");
 
     // Animation Logic
     const startTime = Date.now();
@@ -52,9 +52,13 @@ export default function LoadingScreen() {
         setProgress(100);
         setTimeout(() => {
           setIsLoading(false);
-          document.body.style.overflow = '';
-          document.documentElement.removeAttribute('data-loading-screen');
-          localStorage.setItem("md_hasVisited", "true");
+          document.body.style.overflow = "";
+          document.documentElement.removeAttribute("data-loading-screen");
+          try {
+            localStorage.setItem("md_hasVisited", "true");
+          } catch {
+            // ignore write errors (private mode, blocked storage)
+          }
         }, 200); // Short delay at 100% before fade out
       }
     };
@@ -64,12 +68,12 @@ export default function LoadingScreen() {
     return () => {
       cancelAnimationFrame(animationFrame);
       textTimeouts.forEach(clearTimeout);
-      document.body.style.overflow = '';
-      document.documentElement.removeAttribute('data-loading-screen');
+      document.body.style.overflow = "";
+      document.documentElement.removeAttribute("data-loading-screen");
     };
-  }, []);
+  }, [isLoading]);
 
-  if (!mounted) return null;
+  if (!isClient) return null;
 
   return (
     <AnimatePresence>

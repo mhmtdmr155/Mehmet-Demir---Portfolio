@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef } from "react";
 import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import Image from "next/image";
 import { HiBookOpen } from "react-icons/hi";
 import SectionHeader from "./SectionHeader";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useIsClient } from "../hooks/useIsClient";
 
 const courses = [
   {
@@ -48,24 +49,12 @@ const courses = [
 ];
 
 export default function Courses() {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
   const shouldReduceMotion = useReducedMotion();
   const isMobile = useIsMobile();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
-  const shouldAnimate = mounted && !shouldReduceMotion && !isMobile;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const containerVariants: Variants = useMemo(() => ({
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05, delayChildren: 0.08 }
-    }
-  }), []);
+  const shouldAnimate = isClient && !shouldReduceMotion && !isMobile;
 
   const itemVariants: Variants = useMemo(() => ({
     hidden: { opacity: 0, y: 12 },

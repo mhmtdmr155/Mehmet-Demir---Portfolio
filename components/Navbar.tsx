@@ -7,7 +7,6 @@ import { HiMenu, HiX, HiMoon, HiSun } from "react-icons/hi";
 import { useTheme } from "./ThemeProvider";
 import {
   IconAbout,
-  IconCertificates,
   IconContact,
   IconCourses,
   IconEducation,
@@ -22,7 +21,6 @@ const navItems = [
   { name: "Eğitim", href: "#egitim", Icon: IconEducation },
   { name: "Projeler", href: "#projeler", Icon: IconProjects },
   { name: "Kurslar", href: "#kurslar", Icon: IconCourses },
-  { name: "Sertifikalar", href: "#sertifikalar", Icon: IconCertificates },
   { name: "Referanslar", href: "#referanslar", Icon: IconReferences },
   { name: "İletişim", href: "#iletisim", Icon: IconContact },
 ];
@@ -139,7 +137,7 @@ export default function Navbar() {
           >
             <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl p-4 xl:p-5 border border-white/10 shadow-lg">
               <p className="text-center text-[var(--text-primary)] font-semibold text-base xl:text-lg italic leading-relaxed">
-                "Kodla, öğren, geliştir."
+                &ldquo;Kodla, öğren, geliştir.&rdquo;
               </p>
             </div>
           </motion.div>
@@ -147,7 +145,6 @@ export default function Navbar() {
           {/* Navigation Items */}
           <div className="flex flex-col gap-2 xl:gap-3 flex-1 px-3 xl:px-4 overflow-y-auto">
             {navItems.map((item, index) => (
-              // eslint-disable-next-line @typescript-eslint/no-shadow
               <motion.a
                 key={item.name}
                 href={item.href}

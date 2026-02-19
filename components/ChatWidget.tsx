@@ -12,6 +12,19 @@ interface Message {
   timestamp: number;
 }
 
+function getInitialMessages(): Message[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem("md_chat_history");
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(-50) as Message[];
+  } catch {
+    return [];
+  }
+}
+
 // Türkçe karakter normalize
 function normalizeText(text: string): string {
   return text
@@ -271,24 +284,10 @@ function findBestMatch(userMessage: string): string {
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // LocalStorage'dan konuşma geçmişini yükle
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem("md_chat_history");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setMessages(parsed.slice(-50));
-      }
-    } catch (error) {
-      console.warn("Chat history load failed:", error);
-    }
-  }, []);
 
   // Mesajları localStorage'a kaydet
   useEffect(() => {
@@ -448,7 +447,7 @@ export function ChatWidget() {
                   </div>
                   <div className="space-y-2">
                     <h4 className="text-[15px] sm:text-lg font-black text-white tracking-tight flex items-center justify-center gap-2">
-                      Demir AI'ya Hoş Geldiniz!
+                      Demir AI&apos;ya Hoş Geldiniz!
                       <motion.div
                         animate={{ rotate: [0, 20, -20, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
@@ -457,7 +456,7 @@ export function ChatWidget() {
                       </motion.div>
                     </h4>
                     <p className="text-[12.5px] sm:text-sm text-emerald-200/70 leading-relaxed max-w-xs px-2">
-                      Ben Mehmet'in dijital asistanıyım. Eğitim, deneyim, projeler ve daha fazlası hakkında bana soru sorabilirsiniz.
+                      Ben Mehmet&apos;in dijital asistanıyım. Eğitim, deneyim, projeler ve daha fazlası hakkında bana soru sorabilirsiniz.
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center mt-3 sm:mt-4">
                       <span className="px-2.5 py-1 sm:px-3 sm:py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[11px] sm:text-xs text-emerald-300/90 backdrop-blur">💼 Deneyim</span>
