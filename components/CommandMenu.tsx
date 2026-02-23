@@ -3,14 +3,12 @@
 import * as React from "react";
 import { Command } from "cmdk";
 import { useEffect, useState } from "react";
-import { useTheme } from "./ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
-import { HiHome, HiUser, HiBriefcase, HiCode, HiMail, HiSun, HiMoon, HiDesktopComputer } from "react-icons/hi";
+import { HiHome, HiUser, HiBriefcase, HiCode, HiMail, HiDesktopComputer } from "react-icons/hi";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false);
-    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -85,13 +83,6 @@ export function CommandMenu() {
                                 <Command.Separator className="my-1 h-px bg-[var(--border-color)]" />
 
                                 <Command.Group heading="Aksiyonlar" className="mb-2 text-xs font-medium text-[var(--text-tertiary)] px-2">
-                                    <Command.Item
-                                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-3 text-sm text-[var(--text-primary)] aria-selected:bg-[var(--accent-primary)] aria-selected:text-white transition-colors"
-                                        onSelect={() => runCommand(toggleTheme)}
-                                    >
-                                        {theme === 'dark' ? <HiSun className="h-5 w-5" /> : <HiMoon className="h-5 w-5" />}
-                                        <span>Temayı Değiştir ({theme === 'dark' ? 'Aydınlık' : 'Karanlık'})</span>
-                                    </Command.Item>
                                     <Command.Item
                                         className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-3 text-sm text-[var(--text-primary)] aria-selected:bg-[var(--accent-primary)] aria-selected:text-white transition-colors"
                                         onSelect={() => {

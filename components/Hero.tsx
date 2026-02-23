@@ -145,28 +145,6 @@ export default function Hero() {
         </div>
       </motion.div>
 
-      <motion.div
-        initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
-        animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
-      >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="flex flex-col items-center gap-2 cursor-pointer"
-          onClick={() => document.getElementById('hakkimda')?.scrollIntoView({ behavior: 'smooth' })}
-        >
-          <div className="w-6 h-10 rounded-full border-2 border-[var(--accent-primary)]/60 flex items-start justify-center p-2">
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full"
-            />
-          </div>
-          <span className="text-xs text-[var(--accent-primary)]/80 font-semibold tracking-wider">SCROLL</span>
-        </motion.div>
-      </motion.div>
     </section>
   );
 }

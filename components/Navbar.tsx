@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { HiMenu, HiX, HiMoon, HiSun } from "react-icons/hi";
-import { useTheme } from "./ThemeProvider";
+import { HiMenu, HiX } from "react-icons/hi";
 import {
   IconAbout,
   IconContact,
@@ -31,7 +30,6 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [hasProfileImage, setHasProfileImage] = useState(true);
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     let ticking = false;
@@ -180,32 +178,6 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Theme Toggle - Bottom */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.2 }}
-            className="px-3 xl:px-4"
-          >
-            <motion.button
-              onClick={toggleTheme}
-              className="w-full p-4 xl:p-5 rounded-xl bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 hover:border-[var(--accent-primary)]/50 transition-all duration-300 group flex items-center justify-center gap-3 shadow-lg hover:shadow-xl"
-              whileHover={{ scale: 1.02, rotate: 180 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {theme === "dark" ? (
-                <>
-                  <HiSun className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" size={22} />
-                  <span className="text-sm xl:text-base font-semibold text-[var(--text-primary)]">Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <HiMoon className="text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" size={22} />
-                  <span className="text-sm xl:text-base font-semibold text-[var(--text-primary)]">Dark Mode</span>
-                </>
-              )}
-            </motion.button>
-          </motion.div>
         </motion.div>
       </motion.nav>
 
@@ -243,17 +215,6 @@ export default function Navbar() {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-3">
-              <motion.button
-                onClick={toggleTheme}
-                className="p-2 rounded-full bg-white/5 backdrop-blur-xl border border-white/10"
-                whileTap={{ scale: 0.9 }}
-              >
-                {theme === "dark" ? (
-                  <HiSun className="text-yellow-400" size={20} />
-                ) : (
-                  <HiMoon className="text-blue-400" size={20} />
-                )}
-              </motion.button>
               <motion.button
                 className="p-2 text-[var(--text-primary)] bg-white/5 backdrop-blur-xl border border-white/10 rounded-full"
                 onClick={() => setIsOpen(!isOpen)}

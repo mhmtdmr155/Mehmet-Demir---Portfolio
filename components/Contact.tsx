@@ -266,17 +266,17 @@ export default function Contact() {
               Lütfen iletişim nedeninizi seçin ve mesajınızı gönderin
             </p>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
               {feelings.map((feeling, index) => (
                 <motion.button
                   key={index}
                   onClick={() => setFormData({ ...formData, feeling: feeling.text })}
-                  className={`relative p-4 sm:p-5 rounded-2xl transition-all duration-300 overflow-hidden border ${
+                  className={`relative p-3.5 sm:p-4 rounded-2xl transition-all duration-300 overflow-hidden border ${
                     formData.feeling === feeling.text
-                      ? "bg-gradient-to-br from-[var(--accent-primary)]/40 to-[var(--accent-secondary)]/30 border-[var(--accent-primary)]/50 scale-105 shadow-lg shadow-[var(--accent-primary)]/20"
+                      ? "bg-gradient-to-br from-[var(--accent-primary)]/40 to-[var(--accent-secondary)]/30 border-[var(--accent-primary)]/50 scale-[1.03] shadow-lg shadow-[var(--accent-primary)]/20"
                       : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-[var(--accent-primary)]/30"
                   }`}
-                  whileHover={{ scale: formData.feeling === feeling.text ? 1.05 : 1.08, y: -6 }}
+                  whileHover={{ scale: formData.feeling === feeling.text ? 1.03 : 1.05, y: -4 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, scale: 0.9, y: 12 }}
                   whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -286,7 +286,7 @@ export default function Contact() {
                   {/* Selected indicator */}
                   {formData.feeling === feeling.text && (
                     <motion.div
-                      className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[var(--accent-primary)]"
+                      className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)]"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 300 }}
@@ -301,7 +301,7 @@ export default function Contact() {
                   
                   <div className="relative z-10 flex flex-col items-center text-center">
                     <motion.div
-                      className="text-3xl sm:text-4xl mb-2"
+                      className="text-2xl sm:text-3xl mb-1.5"
                       animate={formData.feeling === feeling.text ? { 
                         scale: [1, 1.2, 1],
                         rotate: [0, 10, -10, 0]
@@ -310,14 +310,14 @@ export default function Contact() {
                     >
                       {feeling.emoji}
                     </motion.div>
-                    <div className={`font-bold text-sm sm:text-base mb-1 ${
+                    <div className={`font-bold text-xs sm:text-sm mb-1 ${
                       formData.feeling === feeling.text 
                         ? "text-white" 
                         : "text-[var(--text-primary)]"
                     }`}>
                       {feeling.text}
                     </div>
-                    <div className={`text-xs ${
+                    <div className={`text-[11px] sm:text-xs ${
                       formData.feeling === feeling.text 
                         ? "text-white/80" 
                         : "text-[var(--text-secondary)]"

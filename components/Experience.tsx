@@ -51,8 +51,8 @@ const experiences = [
     {
         company: "Prep ShipHub",
         role: "Web & Mobile Developer",
-        period: "Haziran 2025 - Kasım 2025",
-        description: "Amerika merkezli lojistik firmasında React ve React Native ile kullanıcı odaklı, yüksek performanslı web ve mobil arayüzler geliştiriyorum.",
+        period: "Temmuz 2025 - Aralık 2025",
+        description: "Amerika merkezli lojistik firmasında Proje Bazlı React ve React Native ile kullanıcı odaklı, yüksek performanslı web ve mobil arayüzler geliştiriyorum.",
         icon: HiGlobeAlt,
         color: "text-blue-400",
         gradient: "from-blue-500/20 to-cyan-500/20",

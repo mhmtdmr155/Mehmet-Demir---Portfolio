@@ -185,10 +185,10 @@ export default function About() {
                 className="group relative"
               >
                 <div
-                  className="relative rounded-3xl p-5 bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-xl border border-white/10"
+                  className="relative rounded-3xl p-5 bg-gradient-to-br from-white/8 to-white/4 backdrop-blur-xl border border-white/10 text-center"
                 >
                   <div
-                    className={`relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r ${skill.gradient} mb-3 shadow-lg overflow-hidden`}
+                    className={`relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r ${skill.gradient} mb-3 shadow-lg overflow-hidden mx-auto`}
                   >
                     {skill.imageUrl ? (
                       <Image

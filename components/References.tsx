@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 import { motion, useReducedMotion, useInView, Variants } from "framer-motion";
 import { HiMail, HiExternalLink, HiUser, HiBriefcase } from "react-icons/hi";
+import { FaLinkedin } from "react-icons/fa";
 import SectionHeader from "./SectionHeader";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useIsClient } from "../hooks/useIsClient";
@@ -10,7 +11,7 @@ import { useIsClient } from "../hooks/useIsClient";
 const references = [
   {
     name: "Yasin Çelik",
-    title: "Senior Software Engineer",
+    title: "Staff Software Engineer at LinkedIn",
     institution: "Microsoft",
     department: null,
     expertise: null,
@@ -127,6 +128,20 @@ export default function References() {
                         <HiMail size={16} className="flex-shrink-0" />
                         <span className="break-all">{ref.email}</span>
                       </motion.a>
+
+                      {ref.linkedin && (
+                        <motion.a
+                          href={ref.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/5 text-[var(--accent-secondary)] rounded-lg hover:bg-white/8 transition-all font-semibold border border-[var(--border-color)] text-sm break-all will-change-transform"
+                          whileHover={!shouldReduceMotion ? { scale: 1.05 } : {}}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <FaLinkedin size={16} className="flex-shrink-0" />
+                          <span className="break-all">LinkedIn Profili</span>
+                        </motion.a>
+                      )}
 
                       {ref.type === "Staj Referansı" && (
                         <motion.a
