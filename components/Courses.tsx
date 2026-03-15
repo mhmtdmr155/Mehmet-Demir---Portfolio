@@ -107,7 +107,7 @@ export default function Courses() {
               <motion.div
                 className="relative rounded-3xl p-6 sm:p-8 border border-[var(--border-color)] bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-xl"
               >
-                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6">
                   {course.imageUrl ? (
                     <motion.div
                       className="relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-lg"
@@ -133,7 +133,7 @@ export default function Courses() {
                   )}
 
                   <div className="flex-1 w-full">
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
                       <HiBookOpen className="text-[var(--accent-primary)]" size={18} />
                       <span className="text-xs sm:text-sm font-semibold text-[var(--accent-primary)]">{course.platform}</span>
                     </div>

@@ -99,7 +99,7 @@ export default function Education() {
               <motion.div
                 className="relative rounded-3xl p-6 sm:p-8 border border-[var(--border-color)] bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-xl"
               >
-                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6">
                   <motion.div
                     className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-r ${edu.gradient} flex items-center justify-center text-3xl sm:text-4xl shadow-lg will-change-transform`}
                     whileHover={!shouldReduceMotion ? { scale: 1.15, rotate: 5 } : {}}
@@ -109,7 +109,7 @@ export default function Education() {
                   </motion.div>
 
                   <div className="flex-1 w-full">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-2 sm:gap-3 mb-3 flex-wrap">
                       <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
                         {edu.title}
                       </h3>
@@ -118,14 +118,14 @@ export default function Education() {
                         {edu.period}
                       </span>
                     </div>
-                    <div className="flex items-start gap-2 mb-2">
+                    <div className="flex items-start justify-center sm:justify-start gap-2 mb-2">
                       <HiLocationMarker className="text-[var(--text-secondary)] mt-1 flex-shrink-0" size={18} />
                       <p className="text-base sm:text-lg text-[var(--text-primary)] font-medium break-words">
                         {edu.institution}
                       </p>
                     </div>
                     {edu.department && (
-                      <p className="text-sm sm:text-base text-[var(--text-secondary)] ml-0 sm:ml-6 mt-1">{edu.department}</p>
+                      <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-1 sm:ml-6 text-center sm:text-left">{edu.department}</p>
                     )}
                   </div>
                 </div>

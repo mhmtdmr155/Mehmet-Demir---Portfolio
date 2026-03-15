@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HiX, HiPaperAirplane, HiSparkles, HiTrash } from "react-icons/hi";
 import { RiRobot2Fill } from "react-icons/ri";
@@ -43,614 +43,998 @@ function normalizeText(text: string): string {
     .replace(/Ç/g, 'c');
 }
 
-type Language = "tr" | "en";
-
-type LocalizedAnswer = string | string[];
+type Answer = string | string[];
 
 interface KnowledgeEntry {
   id: string;
   keywords: string[];
   variations?: string[];
-  answer: {
-    tr: LocalizedAnswer;
-    en: LocalizedAnswer;
-  };
+  answer: Answer;
+  priority?: number;
+  requiredTerms?: string[];
 }
 
-const FALLBACK_ANSWERS: Record<Language, LocalizedAnswer> = {
-  tr: [
-    "Bunu netleştirebilir misin? Eğitim/deneyim/proje/teknoloji/iletişim/konum/CV sorabilirsin. Günlük sorular da olur.",
-    "Tam anlayamadım. Eğitim, deneyim, projeler, teknoloji, iletişim, konum veya CV sorabilirsin.",
-    "Kısa ipucu: eğitim, deneyim, projeler, teknoloji, iletişim, konum, CV. Günlük sorular da sorabilirsin.",
-  ],
-  en: [
-    "Could you clarify? Ask about education, experience, projects, tech, contact, location or CV. Daily questions are fine too.",
-    "I’m not sure I got that. You can ask about education, experience, projects, tech stack, contact, location or CV.",
-    "Quick tip: ask about education, experience, projects, tech, contact, location, or CV. Daily questions work too.",
-  ],
+const INTENT_LABELS: Record<string, string> = {
+  greeting: "Selamlama",
+  help: "Yardım",
+  assistant: "Asistan bilgisi",
+  summary: "Genel profil",
+  education: "Eğitim",
+  experience: "Deneyim",
+  projects: "Projeler",
+  skills: "Teknoloji stack",
+  contact: "İletişim",
+  cv: "CV",
+  location: "Konum",
+  reference: "Referans",
+  courses: "Kurslar",
+  age: "Yaş bilgisi",
+  openToWork: "Open to work",
+  license: "Ehliyet",
+  languages: "Dil bilgisi",
+  frontend: "Frontend",
+  mobile: "Mobil geliştirme",
+  ai: "AI/ML",
+  aiUsage: "AI kullanım yaklaşımı",
+  strengths: "Güçlü yönler",
+  website: "Site bölümleri",
+  collaboration: "İş birliği",
+  educationVsExperience: "Eğitim vs deneyim",
+  hireability: "İşe alınma yorumu",
+  careerDecision: "Kariyer yönü seçimi",
+  profileReview: "Profil değerlendirme",
+  roadmap30: "30 günlük plan",
+  whyHire: "Neden işe/staja alınmalı",
 };
 
-function pickAnswer(answer: LocalizedAnswer): string {
+const FALLBACK_ANSWERS: Answer = [
+  "Bunu biraz daha net yazar mısın? Eğitim, deneyim, projeler, teknoloji, iletişim, konum, CV veya günlük sorular sorabilirsin.",
+  "Tam anlayamadım. Kısa bir şekilde tekrar sorar mısın?",
+  "Daha iyi yardımcı olayım: neyi öğrenmek istediğini 1 cümleyle yazar mısın?",
+];
+
+const OUT_OF_SCOPE_ANSWER =
+  "Bu soru için sitede/CV’de doğrulanmış bilgi yok. Uydurma bilgi vermem. İstersen eğitim, deneyim, projeler, teknoloji, iletişim veya CV hakkında sor.";
+
+const SENSITIVE_QUESTION_REGEX =
+  /\b(maas|maaş|ucret|ücret|salary|din|siyaset|politik|siyasi|oy|sevgili|iliski|ilişki|boyu|kilo|tc kimlik|adres)\b/;
+
+const MIN_SCORE = 6;
+const AMBIGUITY_RATIO = 0.86;
+const SAFE_TOPICS = ["egitim", "deneyim", "projeler", "teknoloji", "iletisim", "cv", "konum"];
+const GENERIC_INTENTS = new Set(["greeting", "help", "assistant", "thanks", "goodbye", "dailyChat"]);
+
+function pickAnswer(answer: Answer): string {
   if (Array.isArray(answer)) {
     return answer[Math.floor(Math.random() * answer.length)];
   }
   return answer;
 }
 
-function getAnswer(entry: KnowledgeEntry, language: Language): string {
-  return pickAnswer(entry.answer[language]);
-}
-
-function getPreferredLanguage(): Language {
-  if (typeof navigator === "undefined") return "tr";
-  const lang = (navigator.language || "").toLowerCase();
-  return lang.startsWith("en") ? "en" : "tr";
-}
-
-function detectLanguage(message: string): Language {
+function isLikelyEnglishMessage(message: string): boolean {
   const raw = message.toLowerCase();
-  if (raw.startsWith("en:") || raw.startsWith("english:")) return "en";
-  if (raw.startsWith("tr:") || raw.startsWith("turkce:") || raw.startsWith("türkçe:")) return "tr";
-  if (/[çğıöşü]/i.test(message)) return "tr";
-
-  const trHints = [
-    "merhaba", "selam", "nasil", "nedir", "nerede", "hangi", "hakkinda",
-    "egitim", "deneyim", "projeler", "iletisim", "telefon", "mail", "cv",
-    "hava", "saat", "tarih", "gun", "gunaydin", "espri", "saka", "motivasyon",
+  const enWords = [
+    "hello", "hi", "how are you", "what", "where", "who", "why", "when",
+    "project", "experience", "education", "contact", "phone", "email",
+    "weather", "time", "date", "joke", "motivation", "resume", "how old",
+    "old", "years old", "your age", "are you",
   ];
-  const enHints = [
-    "hello", "hi", "who", "what", "where", "education", "experience",
-    "projects", "skills", "contact", "phone", "email", "resume", "cv",
-    "weather", "time", "date", "joke", "motivation",
+  const trWords = [
+    "merhaba", "selam", "nasıl", "nasil", "proje", "deneyim", "eğitim", "egitim",
+    "iletişim", "iletisim", "telefon", "mail", "hava", "saat", "tarih", "şaka", "saka",
   ];
 
-  const trScore = trHints.reduce((s, w) => (raw.includes(w) ? s + 1 : s), 0);
-  const enScore = enHints.reduce((s, w) => (raw.includes(w) ? s + 1 : s), 0);
-
-  if (enScore > trScore) return "en";
-  if (trScore > 0) return "tr";
-  return "en";
+  const enScore = enWords.reduce((sum, w) => (raw.includes(w) ? sum + 1 : sum), 0);
+  const trScore = trWords.reduce((sum, w) => (raw.includes(w) ? sum + 1 : sum), 0);
+  const asciiWords = raw
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  const hasCommonEnglishPattern = /\b(what|where|when|how|who|why)\b/.test(raw);
+  return enScore > trScore || (hasCommonEnglishPattern && asciiWords.length >= 2);
 }
 
-// Kural tabanlı, iki dilli bilgi veritabanı (kısa ve öz)
+function tokenize(message: string): string[] {
+  return normalizeText(message)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function normalizeQuery(text: string): string {
+  let n = normalizeText(text);
+  n = n.replace(/([a-z])\1{2,}/g, "$1$1");
+  const replacements: Array<[RegExp, string]> = [
+    [/\bcvmi\b/g, "cv mi"],
+    [/\bozgecmis\b/g, "ozgecmis"],
+    [/\bozgecmisi\b/g, "ozgecmis"],
+    [/\btecrube\b/g, "deneyim"],
+    [/\bteknik stack\b/g, "tech stack"],
+    [/\byasinda\b/g, "yasinda"],
+    [/\bwt\b/g, "work and travel"],
+    [/\bw\/t\b/g, "work and travel"],
+    [/\bslm\b/g, "selam"],
+    [/\bsa\b/g, "selam"],
+    [/\bmrb\b/g, "merhaba"],
+    [/\bnbr\b/g, "naber"],
+    [/\bnapiyon\b/g, "ne yapiyorsun"],
+    [/\bnapiyosun\b/g, "ne yapiyorsun"],
+    [/\bnapiosun\b/g, "ne yapiyorsun"],
+    [/\bdeniyim\b/g, "deneyim"],
+    [/\bdeniyimler\w*\b/g, "deneyimleri"],
+    [/\bnekadr\b/g, "ne kadar"],
+    [/\bkiscaa\b/g, "kisaca"],
+    [/\banlatt\b/g, "anlat"],
+    [/\biyiki\b/g, "iyi ki"],
+    [/\byaani\b/g, "yani"],
+    [/\bcalisiyorum\b/g, "calisiyor"],
+    [/\bcalisiyor mu\b/g, "calisiyor mu"],
+    [/\bise\b/g, "ise"],
+    [/\bstaja\b/g, "staja"],
+    [/\bkac\b/g, "kac"],
+  ];
+  for (const [pattern, replacement] of replacements) {
+    n = n.replace(pattern, replacement);
+  }
+  return n.replace(/\s+/g, " ").trim();
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function containsTerm(text: string, term: string): boolean {
+  const escaped = escapeRegex(term);
+  const regex = new RegExp(`(^|\\s)${escaped}(\\s|$)`);
+  return regex.test(text);
+}
+
+function hasAnyTerm(text: string, terms: string[]): boolean {
+  return terms.some((term) => containsTerm(text, normalizeText(term)));
+}
+
+function buildOptionPrompt(options: string[]): string {
+  if (options.length === 0) {
+    return "Sorunu netleştirir misin? Örn: eğitim, deneyim, proje, teknoloji, iletişim.";
+  }
+  const mapped = options.map((id) => INTENT_LABELS[id] ?? id).slice(0, 3);
+  return `Sorunu daha net cevaplayabilmem için şunlardan birini seçer misin?\n- ${mapped.join("\n- ")}`;
+}
+
+function buildGeneralGuidance(normalizedMessage: string): string | null {
+  if (/\b(ise alin|is bulur|ise gir|ise girer miyim|ise alinirmiyim|ise alinir miyim)\b/.test(normalizedMessage)) {
+    return "Evet, profilin işe alınabilir seviyede. Özellikle React/React Native + gerçek proje deneyimi güçlü tarafın.\n\nDaha hızlı sonuç için:\n1) CV’de ölçülebilir çıktıları öne çıkar (örn. proje etkisi, kullanılan teknoloji).\n2) GitHub’da 2-3 projeyi canlı demo + düzgün README ile vitrine koy.\n3) Başvurularda frontend/mobil odaklı pozisyonları hedefleyip kısa, kişiselleştirilmiş ön yazı kullan.";
+  }
+
+  if (/\b(ne yapmaliyim|nasil yaparim|nasil ilerleyeyim|oner|öner|yol haritasi|plan)\b/.test(normalizedMessage)) {
+    return "Kısa bir yol haritası önerebilirim. Hedefini netleştir, sonra 2 haftalık sprint mantığıyla ilerle:\n1) Hedef: tek bir rol seç (Frontend / React Native / Full-Stack).\n2) Çıktı: her sprintte 1 somut çıktı (özellik, demo, case study).\n3) Görünürlük: LinkedIn + GitHub + portföyde düzenli paylaşım.\n\nİstersen hedef role göre 30 günlük plan da çıkarabilirim.";
+  }
+
+  if (/\b(sence|yorumla|degerlendir|değerlendir|mantikli mi|mantıklı mı)\b/.test(normalizedMessage)) {
+    return "Yorumlayabilirim. En iyi sonuç için sorunu şu formatta yaz:\n- Konu\n- Hedefin\n- Kısıtın (zaman/tecrübe)\n\nBuna göre artı-eksi analizi ve net öneri vereyim.";
+  }
+
+  if (/\b(hangisi|karsilastir|karşılaştır|mi yoksa|versus|vs)\b/.test(normalizedMessage)) {
+    return "Karşılaştırmalı cevap verebilirim. İki seçeneği yaz, sana kısa artı/eksi ve hangi durumda hangisini seçmen gerektiğini net söyleyeyim.";
+  }
+
+  return null;
+}
+
+function softStem(word: string): string {
+  const suffixes = [
+    "siniz", "sinizdir", "leriniz", "lariniz", "lerimizi", "larimizi",
+    "lerinin", "larinin", "lerine", "larina", "lerden", "lardan",
+    "leri", "lari", "ler", "lar", "siniz", "mizin", "muzun", "müzün",
+    "niz", "nız", "nuz", "nüz", "nin", "nın", "nun", "nün",
+    "imiz", "ımız", "umuz", "ümüz", "imizde", "ımızda", "umuzda", "ümüzde",
+    "dan", "den", "tan", "ten", "dir", "dır", "dur", "dür", "tir", "tır", "tur", "tür",
+    "si", "sı", "su", "sü", "yi", "yı", "yu", "yü", "ni", "nı", "nu", "nü",
+    "in", "ın", "un", "ün", "de", "da", "te", "ta", "e", "a", "i", "ı", "u", "ü",
+  ];
+  let result = word;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const s of suffixes) {
+      if (result.length > s.length + 2 && result.endsWith(s)) {
+        result = result.slice(0, -s.length);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function closeTokenMatch(word: string, keyword: string): boolean {
+  if (word === keyword) return true;
+  const a = softStem(word);
+  const b = softStem(keyword);
+  if (a === b) return true;
+  if (a.length >= 5 && b.length >= 5 && (a.startsWith(b) || b.startsWith(a))) {
+    return Math.abs(a.length - b.length) <= 2;
+  }
+  if (isTranspositionAway(a, b)) {
+    return true;
+  }
+  if (a.length >= 4 && b.length >= 4 && Math.abs(a.length - b.length) <= 1 && isEditDistanceAtMostOne(a, b)) {
+    return true;
+  }
+  if (a.length >= 7 && b.length >= 7 && Math.abs(a.length - b.length) <= 2 && isEditDistanceAtMost(a, b, 2)) {
+    return true;
+  }
+  return false;
+}
+
+function isEditDistanceAtMostOne(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+
+    if (la > lb) {
+      i += 1;
+    } else if (lb > la) {
+      j += 1;
+    } else {
+      i += 1;
+      j += 1;
+    }
+  }
+
+  if (i < la || j < lb) edits += 1;
+  return edits <= 1;
+}
+
+function isEditDistanceAtMost(a: string, b: string, maxEdits: number): boolean {
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > maxEdits) return false;
+  const dp: number[][] = Array.from({ length: la + 1 }, () => Array(lb + 1).fill(0));
+
+  for (let i = 0; i <= la; i += 1) dp[i][0] = i;
+  for (let j = 0; j <= lb; j += 1) dp[0][j] = j;
+
+  for (let i = 1; i <= la; i += 1) {
+    let rowMin = maxEdits + 1;
+    for (let j = 1; j <= lb; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+      if (dp[i][j] < rowMin) rowMin = dp[i][j];
+    }
+    if (rowMin > maxEdits) return false;
+  }
+
+  return dp[la][lb] <= maxEdits;
+}
+
+function isTranspositionAway(a: string, b: string): boolean {
+  if (a.length !== b.length || a.length < 4) return false;
+  let first = -1;
+  let second = -1;
+
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) {
+      if (first === -1) {
+        first = i;
+      } else if (second === -1) {
+        second = i;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  if (first === -1 || second === -1) return false;
+  return a[first] === b[second] && a[second] === b[first];
+}
+
+function getEntryById(id: string): KnowledgeEntry | null {
+  for (const entry of KNOWLEDGE_BASE) {
+    if (entry.id === id) return entry;
+  }
+  return null;
+}
+
+function detectIntentByRules(normalizedMessage: string): string | null {
+  if (
+    /\b(neden\s+(ise\s+)?(staja\s+)?ala?(yim|yim|lim|limiz|liyim|maliyim|maliyiz)?|neden\s+seni\s+(ise\s+)?(staja\s+)?ala?(yim|yim|lim|limiz|liyim)?|neden\s+almaliyiz)\b/.test(normalizedMessage)
+  ) {
+    return "whyHire";
+  }
+  if (/\b(mehmet kimdir|mehmeti anlat|mehmet nasil biri?|mehmet nasil)\b/.test(normalizedMessage)) {
+    return "summary";
+  }
+  if (
+    /\b(frontend|react native|full stack|fullstack)\b/.test(normalizedMessage) &&
+    /\b(mi|yoksa|hangisi|secmeliyim|secsem|daha iyi)\b/.test(normalizedMessage)
+  ) {
+    return "careerDecision";
+  }
+  if (/\b(beni degerlendir|profilimi degerlendir|beni yorumla|profil yorumu)\b/.test(normalizedMessage)) {
+    return "profileReview";
+  }
+  if (/\b(1 ay|1 ayda|30 gun|30 gunde|30 günlük|30 gunluk)\b/.test(normalizedMessage) && /\b(plan|yol haritasi)\b/.test(normalizedMessage)) {
+    return "roadmap30";
+  }
+  if (
+    /\begitim\b/.test(normalizedMessage) &&
+    /\bdeneyim\b/.test(normalizedMessage) &&
+    /\b(mi|daha|guc|guclu|iyi)\b/.test(normalizedMessage)
+  ) {
+    return "educationVsExperience";
+  }
+  if (/\b(ise alin|is bulur|ise gir|ise girer miyim|ise alinirmiyim|ise alinir miyim)\b/.test(normalizedMessage)) {
+    return "hireability";
+  }
+  if (/\b(nasilsin|naber|ne yapiyorsun|gunun nasil|gunun nasil)\b/.test(normalizedMessage)) {
+    return "dailyChat";
+  }
+
+  const rules: Array<{ id: string; regex: RegExp }> = [
+    { id: "age", regex: /\b(kac yas|yasinda|dogum yili|dogum tarihi)\b/ },
+    { id: "cv", regex: /\b(cv|ozgecmis|pdf)\b/ },
+    { id: "reference", regex: /\b(referans|yasin|celik)\b/ },
+    { id: "contact", regex: /\b(iletisim|mail|email|telefon|github|instagram|linkedin)\b/ },
+    { id: "education", regex: /\b(egitim|universite|okul|gno|hazirlik|lise)\b/ },
+    { id: "experience", regex: /\b(deneyim|kariyer|staj|calisma|is deneyimi)\b/ },
+    { id: "skills", regex: /\b(teknoloji\w*|tech stack|yetenek\w*|beceri\w*|stack|hakim)\b/ },
+    { id: "projects", regex: /\b(proje|projeler|portfolio|portfoy)\b/ },
+    { id: "website", regex: /\b(site|menu|menü|bolum|bölüm)\b/ },
+    { id: "languages", regex: /\b(dil|ingilizce|turkce|türkçe|language)\b/ },
+    { id: "frontend", regex: /\b(frontend|react|next|arayuz|arayüz|ui)\b/ },
+    { id: "mobile", regex: /\b(mobil|mobile|react native|ios|android)\b/ },
+    { id: "aiUsage", regex: /\b(yapay zekayi nasil kullaniyor|yapay zekayi nasil kullaniyorsun|ai kullanimi|ai'i nasil kullaniyor|chatgpt|cursor|copilot|prompt)\b/ },
+    { id: "ai", regex: /\b(yapay zeka|ai|ml|makine ogrenmesi|makine öğrenmesi|xgboost|randomforest)\b/ },
+    { id: "strengths", regex: /\b(guclu yon|güçlü yön|soft skill|problem cozme|problem çözme|takim calismasi)\b/ },
+    { id: "collaboration", regex: /\b(is birligi|iş birliği|is teklifi|iş teklifi|birlikte calis|birlikte çalış)\b/ },
+    { id: "location", regex: /\b(konum|nerede|gaziantep|kahramanmaras|remote)\b/ },
+    { id: "openToWork", regex: /\b(open to work|is ariyor|musait|müsait|hire|available)\b/ },
+    { id: "license", regex: /\b(ehliyet\w*|surucu\w*)\b/ },
+  ];
+
+  for (const rule of rules) {
+    if (rule.regex.test(normalizedMessage)) {
+      return rule.id;
+    }
+  }
+  return null;
+}
+
+function buildClarification(best: KnowledgeEntry, second: KnowledgeEntry): string {
+  const first = INTENT_LABELS[best.id] ?? "Bu konu";
+  const secondLabel = INTENT_LABELS[second.id] ?? "diğer konu";
+  return `Sorunu netleştirelim mi?\n- ${first}\n- ${secondLabel}\n\nHangisini kastettiğini yazarsan çok daha net cevap verebilirim.`;
+}
+
 const KNOWLEDGE_BASE: KnowledgeEntry[] = [
   {
     id: "greeting",
-    keywords: ["merhaba", "selam", "hello", "hi", "hey", "good morning", "good evening", "gunaydin", "iyi gunler", "selamlar"],
-    variations: ["naber", "nasilsin", "sa", "slm"],
-    answer: {
-      tr: [
-        "Merhaba! Ben Demir AI. Mehmet hakkında kısa ve net cevaplar veririm. Ne öğrenmek istersin?",
-        "Selam! Demir AI buradayım. Mehmet’le ilgili kısa bilgi verebilirim.",
-        "Merhaba! Kısa ve öz cevaplarla yardımcı olayım. Ne soracaksın?",
-      ],
-      en: [
-        "Hi! I'm Demir AI. I give short, precise answers about Mehmet. What would you like to know?",
-        "Hello! Demir AI here. Ask me anything about Mehmet.",
-        "Hey! I can help with concise info about Mehmet.",
-      ],
-    },
+    priority: 2,
+    keywords: ["merhaba", "selam", "selamlar", "gunaydin", "iyi gunler", "naber", "nasilsin"],
+    variations: ["sa", "slm"],
+    answer: [
+      "Merhaba! Ben Demir AI. Mehmet hakkında kısa ve net cevaplar veriyorum. Ne öğrenmek istersin?",
+      "Selam! Demir AI buradayım. Mehmet hakkında ne sorarsan hızlıca cevaplayabilirim.",
+      "Merhaba! Yardımcı olayım. Eğitim, deneyim, projeler veya iletişim hakkında sorabilirsin.",
+    ],
+  },
+  {
+    id: "dailyChat",
+    priority: 2,
+    keywords: ["nasilsin", "naber", "ne yapiyorsun", "gunun nasil", "nasil gidiyor"],
+    variations: ["iyisin", "iyimisn", "naptin", "napıyorsun", "napiyorsun"],
+    answer: [
+      "İyiyim, teşekkürler! Mehmet hakkında ne istersen detaylı konuşabiliriz. İstersen eğitim, deneyim, proje veya kariyer planıyla başlayalım.",
+      "Gayet iyiyim. Burada Mehmet’in profiliyle ilgili net ve pratik cevaplar veriyorum. Hangi konuda ilerleyelim?",
+      "Harikayım 🙂 Senin için buradayım. İstersen seni işe/staja götürecek güçlü yönlerini birlikte çıkaralım.",
+    ],
   },
   {
     id: "help",
-    keywords: ["yardim", "help", "komut", "ne sorabilirim", "what can i ask", "commands", "how can you help"],
-    answer: {
-      tr: [
-        "Şunları sorabilirsin: eğitim, deneyim, projeler, teknoloji, iletişim, konum, CV. Günlük sorular da olur.",
-        "Eğitim/deneyim/proje/teknoloji/iletişim/konum/CV sorabilirsin. İstersen günlük sorular da sor.",
-        "Kısa menü: eğitim, deneyim, projeler, teknoloji, iletişim, konum, CV.",
-      ],
-      en: [
-        "Ask about: education, experience, projects, tech, contact, location or CV. Daily questions are fine too.",
-        "You can ask about education, experience, projects, tech stack, contact, location or CV.",
-        "Quick menu: education, experience, projects, tech, contact, location, CV.",
-      ],
-    },
+    priority: 2,
+    keywords: ["yardim", "yardım", "komut", "ne sorabilirim", "neler sorabilirim"],
+    answer: [
+      "Şunları sorabilirsin: eğitim, deneyim, projeler, teknoloji, iletişim, konum, CV, referans, kurslar.",
+      "Kısa menü: eğitim, iş deneyimi, projeler, teknik stack, iletişim, CV ve günlük sorular.",
+    ],
   },
   {
     id: "assistant",
-    keywords: ["sen kimsin", "sen nesin", "demir ai", "assistant", "bot", "who are you", "your name", "ismin ne", "adin ne"],
-    variations: ["adın ne", "ismin ne", "beni duyuyor musun"],
-    answer: {
-      tr: [
-        "Ben Demir AI, Mehmet’in dijital asistanıyım.",
-        "Mehmet için hazırlanmış dijital asistanım.",
-      ],
-      en: [
-        "I'm Demir AI, Mehmet's digital assistant.",
-        "I'm a rule‑based assistant built for Mehmet.",
-      ],
-    },
-  },
-  {
-    id: "howAreYou",
-    keywords: ["nasilsin", "naber", "iyi misin", "how are you", "how's it going", "how are you doing"],
-    answer: {
-      tr: [
-        "İyiyim, teşekkürler. Sana nasıl yardımcı olabilirim?",
-        "Gayet iyi. Ne öğrenmek istersin?",
-        "İyiyim. Kısa bir sorunun var mı?",
-      ],
-      en: [
-        "I'm good, thanks. How can I help?",
-        "Doing well. What would you like to know?",
-        "All good. Got a quick question?",
-      ],
-    },
-  },
-  {
-    id: "whatDoing",
-    keywords: ["ne yapiyorsun", "ne yapıyorsun", "ne yaparsin", "what are you doing", "what do you do"],
-    answer: {
-      tr: [
-        "Mehmet hakkında hızlı ve net bilgi veriyorum.",
-        "Buradayım; Mehmet’le ilgili kısa bilgi sağlıyorum.",
-      ],
-      en: [
-        "I provide quick, clear info about Mehmet.",
-        "I'm here to answer short questions about Mehmet.",
-      ],
-    },
-  },
-  {
-    id: "timeDate",
-    keywords: ["saat kac", "saat kaç", "tarih", "bugun", "today", "date", "time"],
-    answer: {
-      tr: [
-        "Canlı saat/tarihe erişimim yok. Cihazından kontrol edebilirsin.",
-        "Şu an canlı saat/tarih veremiyorum. Telefona bakabilirsin.",
-      ],
-      en: [
-        "I don't have live time/date. Please check your device.",
-        "I can’t access live time/date right now. Please check your phone.",
-      ],
-    },
-  },
-  {
-    id: "weather",
-    keywords: ["hava", "weather", "sicaklik", "sıcaklık", "forecast"],
-    answer: {
-      tr: [
-        "Canlı hava durumuna erişemiyorum. Telefonundan bakabilirsin.",
-        "Hava durumunu canlı çekemiyorum. Lütfen hava uygulamasına bak.",
-      ],
-      en: [
-        "I can't access live weather. Please check your weather app.",
-        "I don’t have live weather data. Please check your phone.",
-      ],
-    },
-  },
-  {
-    id: "joke",
-    keywords: ["saka", "şaka", "espri", "fıkra", "joke", "funny"],
-    answer: {
-      tr: [
-        "Minik bir şaka: “Kod yazınca bozulmayan tek şey… yorum satırları.” 🙂",
-        "Kısa espri: “404: Şaka bulunamadı.” 🙂",
-        "Programcı şakası: “Karanlık modu severiz çünkü ışık bug çeker.” 🙂",
-      ],
-      en: [
-        "Quick joke: Why do programmers love dark mode? Because light attracts bugs. 🙂",
-        "Tiny joke: 404 — joke not found. 🙂",
-        "Programmer joke: I would tell you a UDP joke, but you might not get it. 🙂",
-      ],
-    },
-  },
-  {
-    id: "motivation",
-    keywords: ["motivasyon", "moral", "tavsiye", "ilham", "advice", "motivate", "encourage"],
-    answer: {
-      tr: [
-        "Kısa motivasyon: küçük adım + düzenli pratik = büyük gelişim.",
-        "Bugün 1 küçük adım at, yarın 10 adım kazanırsın.",
-        "İstikrar her şeyi çözer. Devam et!",
-      ],
-      en: [
-        "Small steps + consistency = big growth.",
-        "One small step today becomes momentum tomorrow.",
-        "Consistency beats intensity. Keep going!",
-      ],
-    },
-  },
-  {
-    id: "goodbye",
-    keywords: ["gorusuruz", "görüşürüz", "bye", "see you", "goodbye", "hosca kal", "hoşça kal"],
-    answer: {
-      tr: [
-        "Görüşürüz! Başka bir şey gerekirse buradayım.",
-        "Hoşça kal! İstediğin zaman yazabilirsin.",
-      ],
-      en: [
-        "See you! I'm here if you need anything else.",
-        "Goodbye! Feel free to ask anytime.",
-      ],
-    },
-  },
-  {
-    id: "hobbies",
-    keywords: ["hobi", "hobbies", "favori", "favorite", "free time"],
-    answer: {
-      tr: [
-        "Hobi bilgisi paylaşılmadı. İstersen ekleyebilirim.",
-        "Hobilerle ilgili bilgi yok. Dilersen güncelleyeyim.",
-      ],
-      en: [
-        "No hobby info shared yet. I can add it if you'd like.",
-        "Hobby info isn't available. I can update it if you want.",
-      ],
-    },
-  },
-  {
-    id: "age",
-    keywords: ["kac yas", "kaç yaş", "how old", "dogum", "birth"],
-    answer: {
-      tr: [
-        "Yaş bilgisi paylaşılmadı.",
-        "Bu bilgi paylaşılmıyor.",
-      ],
-      en: [
-        "Age info isn't shared.",
-        "That info isn't available.",
-      ],
-    },
-  },
-  {
-    id: "navigation",
-    keywords: ["site", "sayfa", "menu", "menü", "navigate", "navigation", "where can i find", "bolum", "bölüm"],
-    answer: {
-      tr: [
-        "Site tek sayfa. Menüden bölümlere atlayabilirsin (Hakkımda, Deneyim, Projeler...).",
-        "Menü üzerinden istediğin bölüme hızlıca gidebilirsin.",
-      ],
-      en: [
-        "It's a single‑page site. Use the menu to jump to sections.",
-        "Use the navigation menu to jump to any section.",
-      ],
-    },
+    priority: 2,
+    keywords: ["sen kimsin", "sen nesin", "demir ai", "ismin ne", "adin ne"],
+    variations: ["beni duyuyor musun"],
+    answer: [
+      "Ben Demir AI, Mehmet’in dijital asistanıyım. Onunla ilgili sorularına kısa ve net cevap veririm.",
+      "Demir AI’yım. Mehmet’in CV ve portföy bilgilerini hızlıca aktarırım.",
+    ],
   },
   {
     id: "summary",
-    keywords: ["kendini tanit", "hakkinda", "mehmet kim", "about", "who is", "bio", "profile"],
-    variations: ["kim bu mehmet", "mehmet hakkinda"],
-    answer: {
-      tr: [
-        "Mehmet Demir — yazılım geliştirici adayı. KSÜ Bilgisayar Müh. 3. sınıf (GNO 2.84). React/React Native ve Python/AI odaklı.",
-        "Kısaca: Mehmet Demir, KSÜ Bilgisayar Müh. 3. sınıf. React/React Native ve Python/AI projeleri geliştiriyor.",
-      ],
-      en: [
-        "Mehmet Demir is a software developer candidate. BSc CS at KSÜ (3rd year, GPA 2.84). Focus on React/React Native and Python/AI.",
-        "Short bio: Mehmet Demir, 3rd‑year CS student at KSÜ. Focused on React/React Native and Python/AI.",
-      ],
-    },
+    keywords: ["mehmet kim", "mehmet nasil bir", "mehmet nasil biri", "hakkinda", "kendini tanit", "kısaca", "kisaca"],
+    answer: [
+      "Mehmet Demir: KSÜ Bilgisayar Müh. 3. sınıf öğrencisi (GNO 2.84). React/React Native ve Python/AI odaklı yazılım geliştirici adayı.",
+      "Kısaca Mehmet: web+mobil geliştirme ve yapay zeka tarafında çalışan, proje odaklı bir bilgisayar mühendisliği öğrencisi.",
+    ],
   },
   {
     id: "education",
-    keywords: ["egitim", "education", "universite", "university", "gno", "gpa", "lise", "high school", "hazirlik", "prep"],
-    answer: {
-      tr: [
-        "Eğitim: KSÜ Bilgisayar Müh. 3. sınıf (GNO 2.84). İngilizce hazırlık B2.",
-        "KSÜ Bilgisayar Müh. 3. sınıf, GNO 2.84. İngilizce B2.",
-      ],
-      en: [
-        "Education: BSc CS at KSÜ, 3rd year (GPA 2.84). English prep B2.",
-        "KSÜ CS (3rd year, GPA 2.84). English level B2.",
-      ],
-    },
+    keywords: ["egitim", "üniversite", "universite", "okul", "gno", "not ortalamasi", "hazirlik", "lise"],
+    answer: [
+      "Eğitim: KSÜ Bilgisayar Mühendisliği 3. sınıf (GNO 2.84). İngilizce hazırlık B2. Lise: Gaziantep Yavuzeli Şehit Ali Çiftçi.",
+      "KSÜ Bilgisayar Müh. öğrencisi (3. sınıf). GNO 2.84, İngilizce seviyesi B2.",
+    ],
   },
   {
     id: "experience",
-    keywords: ["deneyim", "experience", "is", "work", "kariyer", "career", "staj", "intern"],
-    answer: {
-      tr: [
-        "Deneyim: Prep ShipHub, Helikanon staj, Freelance; ayrıca Teknofest SİHA ve Work & Travel.",
-        "Kısaca: Web & Mobile Dev (Prep ShipHub), staj (Helikanon), freelance + Teknofest.",
-      ],
-      en: [
-        "Experience: Prep ShipHub, Helikanon intern, Freelance; plus Teknofest SİHA and Work & Travel.",
-        "In short: Web & Mobile Dev, intern, freelance, and Teknofest experience.",
-      ],
-    },
+    keywords: ["deneyim", "is deneyimi", "kariyer", "staj", "calisma", "çalışma", "nerede calisti"],
+    answer: [
+      "Deneyim: Freelance (2023–devam), Teknofest İstiklal SİHA, Work and Travel USA, Prep ShipHub, Helikanon stajı ve T3 Vakfı'nda part-time Eğitmen & Mentör (Ekim 2025–devam).",
+      "Özet deneyim: Web/mobil geliştirme, teknik mentörlük, ekip liderliği ve iletişim becerilerini birlikte geliştiren çok yönlü bir deneyim yapısı var.",
+    ],
   },
   {
     id: "prepShipHub",
-    keywords: ["prep shiphub", "shiphub", "lojistik", "logistics"],
-    answer: {
-      tr: [
-        "Prep ShipHub: Web & Mobile Developer (Haz–Kas 2025). React/React Native.",
-        "Prep ShipHub’da React ve React Native ile web/mobil arayüzler geliştirdi.",
-      ],
-      en: [
-        "Prep ShipHub: Web & Mobile Developer (Jun–Nov 2025). React/React Native.",
-        "At Prep ShipHub, he built web/mobile UIs with React and React Native.",
-      ],
-    },
+    keywords: ["prep shiphub", "shiphub", "lojistik", "amerika merkezli"],
+    answer: [
+      "Prep ShipHub: Web & Mobile Developer (Haz–Kas 2025). React ve React Native ile kullanıcı odaklı arayüzler geliştirdi.",
+      "Prep ShipHub’da React/React Native ile web ve mobil ürün geliştirme yaptı.",
+    ],
   },
   {
     id: "helikanon",
-    keywords: ["helikanon"],
-    answer: {
-      tr: [
-        "Helikanon: Stajyer Yazılım Geliştirici (Ağu–Eyl 2025).",
-        "Helikanon’da staj yaptı (Ağu–Eyl 2025).",
-      ],
-      en: [
-        "Helikanon: Software Dev Intern (Aug–Sep 2025).",
-        "Interned at Helikanon (Aug–Sep 2025).",
-      ],
-    },
+    keywords: ["helikanon", "stajyer", "staj"],
+    answer: [
+      "Helikanon Yazılım: Stajyer Yazılım Geliştirici (Ağu–Eyl 2025). Kurumsal web/mobil projelere katkı sağladı.",
+      "Helikanon’da staj döneminde proje süreçlerine aktif katıldı.",
+    ],
+  },
+  {
+    id: "t3",
+    keywords: ["t3", "t3 vakfi", "t3 vakfı", "egitmen", "eğitmen", "mentor", "mentör"],
+    answer: [
+      "T3 Vakfı: Eğitmen & Mentör (Part-time), Ekim 2025 - Devam Ediyor. Bu rolde ekip liderliği, teknik rehberlik ve iletişim alanlarında aktif gelişim sağlıyor.",
+      "T3 Vakfı'nda part-time eğitmen/mentör olarak teknik mentörlük veriyor; ekip yönetimi ve iletişim kaslarını güçlendiriyor.",
+    ],
   },
   {
     id: "freelance",
-    keywords: ["freelance", "serbest", "bagimsiz"],
-    answer: {
-      tr: [
-        "Freelance: 2023–devam. Web/mobil projeler, müşteri yönetimi.",
-        "2023’ten beri freelance; web/mobil çözümler geliştiriyor.",
-      ],
-      en: [
-        "Freelance since 2023: web/mobile solutions and client work.",
-        "Freelance developer since 2023 (web & mobile projects).",
-      ],
-    },
+    keywords: ["freelance", "serbest", "bagimsiz", "müşteri", "musteri"],
+    answer: [
+      "Freelance: 2023’ten beri web/mobil çözümler geliştiriyor, proje yönetimi ve müşteri iletişimi yürütüyor.",
+      "Freelance tarafta butik yazılım projeleri ve teknik danışmanlık yapıyor.",
+    ],
   },
   {
     id: "teknofest",
-    keywords: ["teknofest", "siha", "uav", "iha", "istiklal", "drone"],
-    answer: {
-      tr: [
-        "Teknofest İstiklal SİHA: Yazılım ekip üyesi (Ara 2023–Eyl 2024).",
-        "İstiklal SİHA projesinde yazılım ekip üyesiydi.",
-      ],
-      en: [
-        "Teknofest İstiklal SİHA: software team member (Dec 2023–Sep 2024).",
-        "Worked on the İstiklal SİHA project as a software team member.",
-      ],
-    },
+    keywords: ["teknofest", "siha", "uav", "iha", "istiklal"],
+    answer: [
+      "Teknofest İstiklal SİHA projesinde yazılım ekip üyesi olarak görev aldı (Ara 2023–Eyl 2024).",
+      "SİHA projesinde sistem entegrasyonu ve yazılım mimarisi tarafında çalıştı.",
+    ],
   },
   {
     id: "workTravel",
-    keywords: ["work and travel", "abd", "usa", "amerika"],
-    answer: {
-      tr: [
-        "Work and Travel USA (Yaz 2024): global iletişim ve kültürlerarası deneyim.",
-        "ABD Work and Travel (2024 yazı): global deneyim.",
-      ],
-      en: [
-        "Work and Travel USA (Summer 2024): global communication & cultural experience.",
-        "Work and Travel USA, Summer 2024.",
-      ],
-    },
+    keywords: ["work and travel", "abd", "amerika", "usa", "global deneyim"],
+    answer: [
+      "Work and Travel USA (Yaz 2024): global iletişim ve kültürlerarası çalışma deneyimi kazandı.",
+      "ABD deneyimiyle iletişim ve adaptasyon becerilerini güçlendirdi.",
+    ],
   },
   {
     id: "projects",
-    keywords: ["projeler", "projects", "github", "portfolio"],
-    answer: {
-      tr: [
-        "Projeler: YouTube Success Predictor, Product Manager, Mayın Tarlası, Restaurant Order Tracking.",
-        "Öne çıkanlar: YouTube Predictor, Product Manager, Minesweeper, Restaurant Order Tracking.",
-      ],
-      en: [
-        "Projects: YouTube Success Predictor, Product Manager, Minesweeper, Restaurant Order Tracking.",
-        "Highlights: YouTube Predictor, Product Manager, Minesweeper, Restaurant Order Tracking.",
-      ],
-    },
+    keywords: ["proje", "projeler", "projelerini", "github", "portfoy", "portfolio", "tek tek say", "listele"],
+    answer: [
+      "Öne çıkan projeler: YouTube Success Predictor, Product Manager, Mayın Tarlası, Restaurant Order Tracking.",
+      "Projeler tarafında web, mobil ve makine öğrenimi odaklı gerçek ürün/prototip çalışmaları var.",
+    ],
   },
   {
     id: "youtubePredictor",
-    keywords: ["youtube", "success predictor", "tahmin", "prediction"],
-    answer: {
-      tr: [
-        "YouTube Success Predictor: 2600+ video, 80+ özellik, ML; Flask arayüz.",
-        "YouTube Predictor: ML tabanlı başarı tahmini, Flask arayüz.",
-      ],
-      en: [
-        "YouTube Success Predictor: 2,600+ videos, 80+ features, ML; Flask app.",
-        "YouTube Predictor: ML‑based success prediction with a Flask UI.",
-      ],
-    },
+    keywords: ["youtube", "success predictor", "tahmin", "makine ogrenmesi", "ml"],
+    answer: [
+      "YouTube Success Predictor: 2600+ video, 80+ özellik, ML modelleri (XGBoost/RandomForest) ve Flask arayüz.",
+      "Bu proje video başarısını yükleme öncesi tahminleyen AI destekli bir sistem.",
+    ],
   },
   {
     id: "skills",
-    keywords: ["yetenek", "skills", "tech stack", "teknoloji", "stack", "teknik"],
-    answer: {
-      tr: [
-        "Stack: React/Next.js, React Native, TS/JS, Python/Flask, ML, SQL/MySQL, Tailwind.",
-        "Teknoloji: React, Next.js, React Native, Python, ML, SQL/MySQL, Tailwind.",
-      ],
-      en: [
-        "Stack: React/Next.js, React Native, TS/JS, Python/Flask, ML, SQL/MySQL, Tailwind.",
-        "Tech: React, Next.js, React Native, Python, ML, SQL/MySQL, Tailwind.",
-      ],
-    },
-  },
-  {
-    id: "softSkills",
-    keywords: ["kisisel", "soft skill", "strengths", "problem cozum", "takim", "teamwork"],
-    answer: {
-      tr: [
-        "Güçlü yönler: problem çözme, takım çalışması, hızlı öğrenme, global iletişim.",
-        "Öne çıkanlar: problem çözme, iletişim, ekip çalışması.",
-      ],
-      en: [
-        "Strengths: problem‑solving, teamwork, fast learning, global communication.",
-        "Highlights: problem‑solving, communication, teamwork.",
-      ],
-    },
+    keywords: ["teknoloji", "teknolojilere", "tech stack", "yetenek", "beceri", "hangi diller", "stack", "hangi teknolojilere hakim", "nelere hakim"],
+    answer: [
+      "Teknik stack: React/Next.js, React Native, TypeScript/JavaScript, Python/Flask, ML, SQL/MySQL, Tailwind.",
+      "Ana odak: modern frontend, cross-platform mobil geliştirme ve AI/ML entegrasyonu.",
+    ],
   },
   {
     id: "courses",
-    keywords: ["kurs", "courses", "udemy", "sertifika", "certificates"],
-    answer: {
-      tr: [
-        "Kurslar: Web Dev Bootcamp, React Complete Guide, React Native Guide, Git/GitHub, SQL/MySQL.",
-        "Udemy: Web Dev Bootcamp, React, React Native, Git/GitHub, SQL/MySQL.",
-      ],
-      en: [
-        "Courses: Web Dev Bootcamp, React Complete Guide, React Native Guide, Git/GitHub, SQL/MySQL.",
-        "Udemy: Web Dev Bootcamp, React, React Native, Git/GitHub, SQL/MySQL.",
-      ],
-    },
+    keywords: ["kurs", "kurslar", "kurslari", "udemy", "eğitimler", "egitimler", "sertifika"],
+    answer: [
+      "Kurslar: Web Dev Bootcamp, React Complete Guide, React Native Guide, Git/GitHub, SQL/MySQL.",
+      "Udemy odaklı teknik eğitimlerle web, mobil ve versiyon kontrol tarafını geliştirdi.",
+    ],
   },
   {
-    id: "contact",
-    keywords: ["iletisim", "contact", "email", "mail", "telefon", "phone", "linkedin", "github", "instagram"],
-    answer: {
-      tr: [
-        "İletişim: mhmtdmr1552@gmail.com | +90 543 232 3167. LinkedIn: mehmet-demir-35b720207.",
-        "Mail: mhmtdmr1552@gmail.com • Tel: +90 543 232 3167 • GitHub: mhmtdmr155.",
-      ],
-      en: [
-        "Contact: mhmtdmr1552@gmail.com | +90 543 232 3167. LinkedIn: mehmet-demir-35b720207.",
-        "Email: mhmtdmr1552@gmail.com • Phone: +90 543 232 3167 • GitHub: mhmtdmr155.",
-      ],
-    },
+    id: "educationVsExperience",
+    priority: 2,
+    keywords: ["egitim mi deneyim mi", "egitim ve deneyim", "daha guclu"],
+    answer: [
+      "İkisi de güçlü ama profilinde pratik taraf daha baskın: gerçek proje ve iş deneyimi (Prep ShipHub, freelance, staj) öne çıkıyor; eğitim temeli bunu destekliyor.",
+      "Kısa yorum: eğitim temeli sağlam, fakat ayırt edici tarafı uygulamalı deneyim ve proje üretimi.",
+    ],
   },
   {
-    id: "cv",
-    keywords: ["cv", "resume", "ozgecmis", "pdf"],
-    answer: {
-      tr: [
-        "CV: /MEHMET DEMİR CV.pdf (Hero bölümündeki “CV İndir”).",
-        "CV dosyası: /MEHMET DEMİR CV.pdf.",
-      ],
-      en: [
-        "CV: /MEHMET DEMİR CV.pdf (use the “CV Download” button).",
-        "CV file: /MEHMET DEMİR CV.pdf.",
-      ],
-    },
+    id: "whyHire",
+    priority: 2,
+    keywords: [
+      "neden ise alinmali",
+      "neden staja alinmali",
+      "neden ise alalim",
+      "neden staja alalim",
+      "neden almaliyiz",
+      "neden seni ise alalim",
+      "neden seni staja alalim",
+    ],
+    answer: [
+      "Mehmet’in işe/staja alınması için güçlü nedenler:\n- Gerçek deneyim: Prep ShipHub, freelance ve staj süreçlerinde gerçek ürün geliştirme pratiği var.\n- Teknik uyum: React/Next.js, React Native, TypeScript/JavaScript ve Python/ML altyapısı ile ekibe hızlı adapte olur.\n- Sonuç odak: Sadece kod yazmak değil, teslim edilen çıktıya ve kullanıcı etkisine odaklanır.\n- İletişim ve sorumluluk: Müşteri/ekip iletişimi güçlü, geri bildirime açık ve öğrenme hızı yüksek.",
+      "Mehmet’in işe/staja alınması için güçlü nedenler:\n- Gerçek deneyim: Prep ShipHub, freelance, staj ve T3 Vakfı mentörlük süreçlerinde gerçek ürün ve insan odaklı çalışma pratiği var.\n- Teknik uyum: React/Next.js, React Native, TypeScript/JavaScript ve Python/ML altyapısı ile ekibe hızlı adapte olur.\n- Sonuç odak: Sadece kod yazmak değil, teslim edilen çıktıya ve kullanıcı etkisine odaklanır.\n- İletişim ve liderlik: Ekip liderliği, teknik rehberlik ve iletişim tarafında güçlü gelişim gösteriyor.",
+      "Kısa cevap: Mehmet güçlü bir junior-mid adayı. Çünkü hem modern web/mobil stack’e hakim hem de gerçek proje deneyimi var. Bu kombinasyon, onboarding süresini kısaltır ve ekibe hızlı değer üretmesini sağlar.",
+    ],
   },
   {
-    id: "location",
-    keywords: ["konum", "location", "nerede", "where", "gaziantep", "kahramanmaras"],
-    answer: {
-      tr: [
-        "Lokasyon: Gaziantep & Kahramanmaraş. Remote çalışmaya açık.",
-        "Gaziantep/Kahramanmaraş. Remote çalışmaya uygun.",
-      ],
-      en: [
-        "Location: Gaziantep & Kahramanmaraş. Open to remote.",
-        "Based in Gaziantep/Kahramanmaraş, open to remote work.",
-      ],
-    },
+    id: "hireability",
+    priority: 2,
+    keywords: ["ise alinirmiyim", "ise alinir miyim", "is bulur muyum", "ise girer miyim", "ise alinir mi"],
+    answer: [
+      "Evet, profilin işe alınabilir seviyede. Özellikle React/React Native tecrübesi, freelance geçmişi ve proje çeşitliliği güçlü.",
+      "Büyük ölçüde evet. CV + portföy + GitHub üçlüsünü birlikte güçlü tuttuğunda işe dönüş oranı belirgin artar.",
+    ],
   },
   {
-    id: "languages",
-    keywords: ["dil", "languages", "ingilizce", "english", "turkce", "turkish"],
-    answer: {
-      tr: [
-        "Diller: Türkçe (ana dil), İngilizce B2.",
-        "Türkçe ana dil, İngilizce B2.",
-      ],
-      en: [
-        "Languages: Turkish (native), English B2.",
-        "Turkish (native), English B2.",
-      ],
-    },
+    id: "careerDecision",
+    priority: 2,
+    keywords: ["frontend mi", "react native mi", "full stack mi", "hangisini secmeliyim", "hangi role odaklanmaliyim"],
+    answer: [
+      "Kısa yorum: kısa vadede en hızlı geri dönüş için Frontend + React odak mantıklı. Çünkü portföyde bunu daha hızlı ve görünür şekilde gösterebilirsin.\n\nOrta vadede React Native ekleyip profilini hibrit hale getirmen seni daha değerli yapar.",
+      "Senin profilinde en doğru strateji: önce Frontend'i keskinleştir, sonra React Native ile tamamla. Böylece hem iş bulma hızı hem de maaş pazarlığı gücü artar.",
+    ],
   },
   {
-    id: "license",
-    keywords: ["ehliyet", "license", "driving"],
-    answer: {
-      tr: [
-        "Ehliyet: M, B, B1, F.",
-        "Sürücü belgeleri: M, B, B1, F.",
-      ],
-      en: [
-        "Driving license: M, B, B1, F.",
-        "Licenses: M, B, B1, F.",
-      ],
-    },
+    id: "profileReview",
+    priority: 2,
+    keywords: ["beni degerlendir", "profilimi degerlendir", "profil yorumu", "beni yorumla"],
+    answer: [
+      "Profil değerlendirmesi:\n- Güçlü: React/React Native temeli, gerçek proje çeşitliliği, freelance + staj + T3 mentörlük deneyimi.\n- Geliştirilecek: Projelerde metrik odaklı anlatım (etki/sayı/çıktı), README kalitesi ve vaka anlatımı.\n- Sonuç: Junior-Mid geçiş yolunda güçlü bir aday profili; görünürlüğü artırırsan dönüş oranı belirgin yükselir.",
+      "Net yorum: teknik temel ve pratik deneyim iyi seviyede. Seni bir üst seviyeye taşıyacak şey, projeleri daha ölçülebilir ve ürün odaklı sunmak.",
+    ],
+  },
+  {
+    id: "roadmap30",
+    priority: 2,
+    keywords: ["30 gun plan", "1 ay plan", "30 gunluk yol haritasi"],
+    answer: [
+      "30 günlük hızlandırılmış plan:\n1. Hafta: CV + LinkedIn + GitHub profil temizliği, 1 proje README iyileştirme.\n2. Hafta: Frontend odaklı 1 mini proje (deploy + case study).\n3. Hafta: React Native tarafında 1 özellik/prototip yayınla.\n4. Hafta: 20 hedefli başvuru + 5 networking mesajı + mülakat soru tekrarı.\n\nBu planı uygularsan profilin daha hızlı fark edilir hale gelir.",
+      "1 aylık öneri: her hafta 1 somut çıktı üret (deploy edilen proje, teknik yazı, açık kaynak katkı). Süreklilik, iş dönüş oranını en çok artıran faktör.",
+    ],
   },
   {
     id: "reference",
-    keywords: ["referans", "reference", "yasin", "celik"],
-    answer: {
-      tr: [
-        "Referans: Yasin Çelik — Staff Software Engineer at LinkedIn. Kurum: Microsoft. LinkedIn: yasin-celik-30933a31.",
-        "Yasin Çelik: Staff Software Engineer at LinkedIn. Kurum: Microsoft. E-posta: yasincelikk16@gmail.com.",
-      ],
-      en: [
-        "Reference: Yasin Çelik — Staff Software Engineer at LinkedIn. Organization: Microsoft. LinkedIn: yasin-celik-30933a31.",
-        "Yasin Çelik — Staff Software Engineer at LinkedIn. Organization: Microsoft. Email: yasincelikk16@gmail.com.",
-      ],
-    },
+    keywords: ["referans", "yasin", "celik", "çelik", "microsoft", "linkedin"],
+    requiredTerms: ["referans", "yasin", "celik", "çelik"],
+    answer: [
+      "Referans: Yasin Çelik — Staff Software Engineer at LinkedIn. Kurum: Microsoft. LinkedIn: yasin-celik-30933a31, E-posta: yasincelikk16@gmail.com.",
+      "Profesyonel referans olarak Yasin Çelik bilgisi mevcut (LinkedIn + e-posta paylaşılabilir).",
+    ],
+  },
+  {
+    id: "age",
+    priority: 2,
+    keywords: ["kac yas", "kaç yaş", "yasinda", "yaşında", "dogum yili", "doğum yılı", "dogum tarihi", "doğum tarihi"],
+    answer: [
+      "Yaş/doğum tarihi bilgisi CV ve sitede açık şekilde paylaşılmıyor.",
+      "Bu bilgi herkese açık paylaşılmamış. İstersen eğitim veya deneyim bilgisini anlatabilirim.",
+    ],
+  },
+  {
+    id: "contact",
+    keywords: ["iletisim", "iletişim", "mail", "email", "telefon", "github", "linkedin", "instagram"],
+    requiredTerms: ["iletisim", "iletişim", "mail", "email", "telefon", "github", "instagram", "linkedin"],
+    answer: [
+      "İletişim: mhmtdmr1552@gmail.com | +90 543 232 3167 | LinkedIn: mehmet-demir-35b720207 | GitHub: mhmtdmr155 | Instagram: @mhmtdmir01",
+      "Mail: mhmtdmr1552@gmail.com — Tel: +90 543 232 3167. İstersen iletişim formundan da yazabilirsin.",
+    ],
+  },
+  {
+    id: "languages",
+    keywords: ["dil", "ingilizce", "turkce", "türkçe", "english", "language"],
+    answer: [
+      "Dil bilgisi: Türkçe ana dil, İngilizce seviyesi B2.",
+      "Türkçe (ana dil) ve İngilizce (B2) seviyesinde iletişim kurabiliyor.",
+    ],
+  },
+  {
+    id: "frontend",
+    keywords: ["frontend", "front-end", "next", "react", "ui", "arayuz", "arayüz"],
+    answer: [
+      "Frontend odağı güçlü: React/Next.js, TypeScript ve Tailwind ile modern, performanslı arayüzler geliştiriyor.",
+      "Web tarafında React ve Next.js ile component tabanlı, kullanıcı odaklı arayüz geliştirme deneyimi var.",
+    ],
+  },
+  {
+    id: "mobile",
+    keywords: ["mobil", "mobile", "react native", "ios", "android"],
+    answer: [
+      "Mobil geliştirme tarafında React Native ile cross-platform uygulamalar geliştiriyor.",
+      "React Native deneyimi sayesinde iOS/Android için tek kod tabanlı çözümler üretiyor.",
+    ],
+  },
+  {
+    id: "aiUsage",
+    priority: 2,
+    keywords: [
+      "yapay zekayi nasil kullaniyor",
+      "yapay zekayi nasil kullaniyorsun",
+      "ai kullanimi",
+      "ai nasil kullaniyor",
+      "chatgpt",
+      "cursor",
+      "copilot",
+      "prompt",
+      "yapay zeka ile calisma",
+    ],
+    answer: [
+      "Mehmet yapay zekayı aktif ve üretim odaklı kullanıyor: fikir doğrulama, kod iyileştirme, hata analizi, dokümantasyon ve hızlı prototipleme süreçlerinde düzenli olarak AI araçlarından yararlanıyor.",
+      "AI kullanım yaklaşımı güçlü: önce problemi net tanımlıyor, sonra AI ile alternatif çözüm üretiyor, en sonda çıktıyı test ederek doğruluyor. Yani AI'ı sadece cevap almak için değil, geliştirme hızını ve kaliteyi artırmak için kullanıyor.",
+      "Yapay zekayı etkin kullanıyor: prompt tasarımı, kod refactor önerileri, test senaryosu üretimi ve içerik/README iyileştirmelerinde sistematik şekilde faydalanıyor.",
+    ],
+  },
+  {
+    id: "ai",
+    keywords: ["yapay zeka", "ai", "ml", "makine ogrenmesi", "makine öğrenmesi", "model", "xgboost", "randomforest"],
+    answer: [
+      "AI/ML tarafında YouTube Success Predictor projesiyle veri analizi, özellik çıkarımı ve modelleme deneyimi bulunuyor.",
+      "Makine öğrenmesi odaklı projelerde model seçimi, değerlendirme ve Flask ile ürünleştirme pratiği var.",
+    ],
+  },
+  {
+    id: "strengths",
+    keywords: ["guclu yon", "güçlü yön", "soft skill", "iletisim becerisi", "problem cozme", "problem çözme", "takim calismasi"],
+    answer: [
+      "Güçlü yönler: problem çözme, hızlı öğrenme, takım çalışması ve müşteri iletişimi.",
+      "Hem teknik hem iletişim tarafında dengeli; ekip içinde sorumluluk alıp sonuç odaklı ilerliyor.",
+    ],
+  },
+  {
+    id: "website",
+    keywords: ["sitede neler var", "site bolumleri", "site bölümleri", "hangi bolumler", "hangi bölümler", "menu", "menü"],
+    answer: [
+      "Sitede öne çıkan bölümler: Hakkımda, Eğitim, Deneyim, Projeler, Kurslar, Referanslar ve İletişim.",
+      "Tek sayfa yapıda; menüden ilgili bölümlere hızlı geçiş yapabilirsin.",
+    ],
+  },
+  {
+    id: "collaboration",
+    keywords: ["is birligi", "iş birliği", "birlikte calis", "birlikte çalış", "is teklifi", "iş teklifi"],
+    answer: [
+      "İş birliği için iletişim kanalları açık: mail, telefon ve LinkedIn üzerinden hızlı dönüş sağlayabilir.",
+      "Proje bazlı veya uzun dönemli iş birliklerine açık; özellikle React/React Native odaklı işlerde hızlı katkı sağlar.",
+    ],
+  },
+  {
+    id: "cv",
+    keywords: ["cv", "ozgecmis", "özgeçmiş", "pdf"],
+    answer: [
+      "CV bağlantısı: /MEHMET DEMİR CV.pdf",
+      "CV’yi sayfadaki “CV İndir” butonundan ya da direkt /MEHMET DEMİR CV.pdf linkinden açabilirsin.",
+    ],
+  },
+  {
+    id: "location",
+    keywords: ["konum", "nerede", "sehir", "şehir", "gaziantep", "kahramanmaras", "kahramanmaraş", "remote"],
+    answer: [
+      "Konum: Gaziantep & Kahramanmaraş. Remote çalışmaya açık.",
+      "Lokasyon esnek: Gaziantep/Kahramanmaraş, uzaktan çalışma uygun.",
+    ],
   },
   {
     id: "openToWork",
-    keywords: ["open to work", "is ariyor", "available", "hire", "pozisyon", "job"],
-    answer: {
-      tr: [
-        "Open to Work: full‑time/part‑time/freelance. Odak: React/React Native/Full‑Stack.",
-        "Çalışmaya açık: full‑time, part‑time, freelance (React/React Native/Full‑Stack).",
-      ],
-      en: [
-        "Open to work: full‑time/part‑time/freelance. Focus on React/React Native/Full‑Stack.",
-        "Available for full‑time, part‑time, and freelance roles.",
-      ],
-    },
+    keywords: ["is ariyor", "iş arıyor", "open to work", "müsait", "musait", "hire", "available"],
+    answer: [
+      "Open to Work: full-time, part-time ve freelance fırsatlara açık. Odak: React/React Native/Full-Stack.",
+      "Çalışmaya açık ve proje bazlı iş birliklerine uygun.",
+    ],
+  },
+  {
+    id: "license",
+    keywords: ["ehliyet", "surucu", "sürücü", "license"],
+    answer: [
+      "Ehliyet: M, B, B1, F.",
+      "Sürücü belgeleri: M, B, B1, F sınıfı.",
+    ],
+  },
+  {
+    id: "daily_time",
+    keywords: ["saat", "tarih", "bugun", "bugün"],
+    answer: [
+      "Canlı saat/tarih verisine erişemiyorum. Cihazından kontrol edebilirsin.",
+      "Anlık saat/tarih veremiyorum ama başka konuda yardımcı olabilirim.",
+    ],
+  },
+  {
+    id: "daily_weather",
+    keywords: ["hava", "sicaklik", "sıcaklık", "hava durumu", "forecast"],
+    answer: [
+      "Canlı hava durumuna erişemiyorum. Telefonundaki hava uygulaması en doğru sonucu verir.",
+      "Anlık hava verisi çekemiyorum ama Mehmet hakkında her şeyi sorabilirsin.",
+    ],
+  },
+  {
+    id: "daily_joke",
+    keywords: ["saka", "şaka", "espri", "fıkra"],
+    answer: [
+      "Mini şaka: “404: Şaka bulunamadı.” 🙂",
+      "Programcı esprisi: “Kod bozulduysa önce cache’i suçla.” 🙂",
+      "Günün esprisi: “Bug fix yaptım, bug’lar ekipçe geri geldi.” 🙂",
+    ],
+  },
+  {
+    id: "daily_motivation",
+    keywords: ["motivasyon", "moral", "tavsiye", "ilham"],
+    answer: [
+      "Kısa motivasyon: Her gün %1 gelişim, uzun vadede büyük fark yaratır.",
+      "Bugünkü motivasyon: Küçük adım + istikrar = sonuç.",
+      "Unutma: Süreklilik, mükemmellikten daha değerlidir.",
+    ],
   },
   {
     id: "thanks",
-    keywords: ["tesekkur", "teşekkür", "tesekkurler", "sagol", "sağol", "eyv", "thanks", "thank you", "great", "awesome", "super", "süpersin"],
-    answer: {
-      tr: [
-        "Rica ederim! Başka ne öğrenmek istersin?",
-        "Ne demek! Başka sorunuz var mı?",
-      ],
-      en: [
-        "You're welcome! What else would you like to know?",
-        "Anytime! Anything else you want to ask?",
-      ],
-    },
+    priority: 2,
+    keywords: ["tesekkur", "teşekkür", "tesekkurler", "sağol", "sagol", "eyv", "super", "süpersin", "harika"],
+    answer: [
+      "Rica ederim! Başka ne öğrenmek istersin?",
+      "Ne demek, her zaman. Devam edelim mi?",
+    ],
+  },
+  {
+    id: "goodbye",
+    priority: 2,
+    keywords: ["gorusuruz", "görüşürüz", "hosca kal", "hoşça kal", "gule gule", "güle güle"],
+    answer: [
+      "Görüşürüz! Tekrar yazmak istersen buradayım.",
+      "Hoşça kal! İhtiyacın olduğunda tekrar sorabilirsin.",
+    ],
   },
 ];
 
-const QUICK_PROMPTS = [
-  { label: { tr: "Deneyim", en: "Experience" }, prompt: { tr: "Deneyimini özetle", en: "Summarize your experience" } },
-  { label: { tr: "Projeler", en: "Projects" }, prompt: { tr: "Projelerini listele", en: "List your projects" } },
-  { label: { tr: "Teknoloji", en: "Tech Stack" }, prompt: { tr: "Teknoloji stack'in nedir?", en: "What's your tech stack?" } },
-  { label: { tr: "İletişim", en: "Contact" }, prompt: { tr: "İletişim bilgilerini ver", en: "Share your contact info" } },
-  { label: { tr: "Saat", en: "Time" }, prompt: { tr: "Saat kaç?", en: "What time is it?" } },
-  { label: { tr: "Hava", en: "Weather" }, prompt: { tr: "Hava durumu?", en: "What's the weather?" } },
-];
+const LEXICON = Array.from(
+  new Set(
+    KNOWLEDGE_BASE.flatMap((entry) => [
+      ...entry.keywords.map((k) => normalizeText(k)),
+      ...(entry.variations ?? []).map((v) => normalizeText(v)),
+    ])
+      .flatMap((phrase) => phrase.split(/\s+/))
+      .filter((token) => token.length >= 3)
+  )
+);
 
-function findBestMatch(userMessage: string): string {
-  const normalized = normalizeText(userMessage);
-  const words = normalized.split(/\s+/).filter(Boolean);
-  const language = detectLanguage(userMessage);
+function normalizeTokensForTypos(tokens: string[]): string[] {
+  return tokens.map((token) => {
+    if (token.length < 4) return token;
+    if (LEXICON.includes(token)) return token;
 
-  let maxScore = 0;
-  let bestEntry: KnowledgeEntry | null = null;
-
-  for (const entry of KNOWLEDGE_BASE) {
-    let score = 0;
-
-    for (const keyword of entry.keywords) {
-      const normalizedKeyword = normalizeText(keyword);
-      if (!normalizedKeyword) continue;
-      if (normalized.includes(normalizedKeyword)) score += Math.max(2, normalizedKeyword.length);
-      if (words.includes(normalizedKeyword)) score += 4;
-    }
-
-    if (entry.variations) {
-      for (const variation of entry.variations) {
-        const normalizedVariation = normalizeText(variation);
-        if (!normalizedVariation) continue;
-        if (normalized.includes(normalizedVariation)) score += Math.max(1, normalizedVariation.length / 2);
+    let best = token;
+    let bestDistance = 3;
+    for (const candidate of LEXICON) {
+      if (Math.abs(candidate.length - token.length) > 2) continue;
+      if (candidate[0] !== token[0]) continue;
+      const max = token.length >= 7 ? 2 : 1;
+      if (!isEditDistanceAtMost(token, candidate, max)) continue;
+      const distance = isEditDistanceAtMostOne(token, candidate) ? 1 : 2;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = candidate;
       }
     }
+    return best;
+  });
+}
 
-    if (score > maxScore) {
-      maxScore = score;
-      bestEntry = entry;
+function inferIntentFromTypoAwareTokens(tokens: string[], normalized: string): string | null {
+  const has = (target: string) => tokens.some((t) => closeTokenMatch(t, target));
+
+  if ((has("teknoloji") || has("yetenek") || has("beceri") || has("stack")) && (has("hakim") || normalized.includes("hakim"))) {
+    return "skills";
+  }
+  if (has("deneyim") || normalized.includes("is deneyimi")) {
+    return "experience";
+  }
+  if (has("mehmet") && (has("nasil") || has("kim") || has("kisaca") || has("anlat"))) {
+    return "summary";
+  }
+  if (has("proje") || has("projeler")) {
+    return "projects";
+  }
+
+  return null;
+}
+
+function scoreEntry(tokens: string[], normalizedMessage: string, entry: KnowledgeEntry): number {
+  if (entry.requiredTerms && entry.requiredTerms.length > 0 && !hasAnyTerm(normalizedMessage, entry.requiredTerms)) {
+    return 0;
+  }
+
+  let score = 0;
+  let matchedTerms = 0;
+  let matchedVariations = 0;
+
+  for (const phrase of entry.keywords) {
+    const k = normalizeText(phrase);
+    if (!k) continue;
+    if (k.includes(" ")) {
+      if (normalizedMessage.includes(k)) {
+        score += Math.max(7, k.length / 1.7);
+        matchedTerms += 1;
+      } else {
+        const phraseTokens = k.split(/\s+/).filter(Boolean);
+        const fuzzyPhraseMatch = phraseTokens.every((pt) =>
+          tokens.some((t) => closeTokenMatch(t, pt))
+        );
+        if (fuzzyPhraseMatch) {
+          score += Math.max(5, k.length / 2.2);
+          matchedTerms += 1;
+        }
+      }
+      continue;
+    }
+
+    if (containsTerm(normalizedMessage, k)) {
+      score += Math.max(5, k.length / 2);
+      matchedTerms += 1;
+    }
+
+    for (const token of tokens) {
+      if (closeTokenMatch(token, k)) {
+        score += 2.5;
+        matchedTerms += 1;
+      }
     }
   }
 
-  if (!bestEntry || maxScore < 3) {
-    return pickAnswer(FALLBACK_ANSWERS[language]);
+  if (entry.variations) {
+    for (const variation of entry.variations) {
+      const v = normalizeText(variation);
+      if (v && normalizedMessage.includes(v)) {
+        score += Math.max(2, v.length / 3);
+        matchedVariations += 1;
+      }
+    }
   }
 
-  return getAnswer(bestEntry, language);
+  if (matchedTerms >= 2) score += 2;
+  if (matchedTerms >= 3) score += 2;
+  if (entry.priority && (matchedTerms > 0 || matchedVariations > 0)) score += entry.priority;
+  return score;
+}
+
+const QUICK_PROMPTS = [
+  { label: "Deneyim", prompt: "Deneyimini özetle" },
+  { label: "Projeler", prompt: "Projelerini listele" },
+  { label: "Teknoloji", prompt: "Teknoloji stack'in nedir?" },
+  { label: "İletişim", prompt: "İletişim bilgilerini ver" },
+  { label: "CV", prompt: "CV linkini ver" },
+  { label: "Motivasyon", prompt: "Kısa bir motivasyon sözü söyle" },
+];
+
+type ChatMode = "normal" | "interview";
+
+function shouldUseInterviewFormat(message: string): boolean {
+  const normalized = normalizeQuery(message);
+  return /\b(neden|ise|staj|degerlendir|değerlendir|mülakat|mulakat|hangisi|plan|yol haritasi|guclu|güçlü|zayif|zayıf|neden alalim)\b/.test(normalized);
+}
+
+function formatInterviewResponse(userMessage: string, response: string): string {
+  if (!shouldUseInterviewFormat(userMessage)) {
+    return response;
+  }
+
+  const shortVersion = response
+    .split("\n")
+    .slice(0, 2)
+    .join(" ")
+    .trim();
+
+  return `Kısa Mülakat Cevabı:\n${shortVersion}\n\nDetaylı Mülakat Cevabı:\n${response}`;
+}
+
+function findBestMatch(userMessage: string): string {
+  if (isLikelyEnglishMessage(userMessage)) {
+    return "Şu anda sadece Türkçe destekliyorum. Sorunu Türkçe yazarsan memnuniyetle yardımcı olurum.";
+  }
+
+  const normalized = normalizeQuery(userMessage);
+  if (!normalized || normalized.length < 2) {
+    return pickAnswer(FALLBACK_ANSWERS);
+  }
+
+  if (SENSITIVE_QUESTION_REGEX.test(normalized)) {
+    return OUT_OF_SCOPE_ANSWER;
+  }
+
+  const rawWords = tokenize(normalized);
+  const words = normalizeTokensForTypos(rawWords);
+  const normalizedFromWords = words.join(" ");
+  const searchableText = `${normalized} ${normalizedFromWords}`.trim();
+
+  const typoAwareIntent = inferIntentFromTypoAwareTokens(words, searchableText);
+  if (typoAwareIntent) {
+    const entry = getEntryById(typoAwareIntent);
+    if (entry) return pickAnswer(entry.answer);
+  }
+
+  const exactIntent = detectIntentByRules(searchableText);
+  if (exactIntent) {
+    const exactEntry = getEntryById(exactIntent);
+    if (exactEntry) return pickAnswer(exactEntry.answer);
+  }
+
+  const ranked = KNOWLEDGE_BASE
+    .map((entry) => ({ entry, score: scoreEntry(words, searchableText, entry) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const best = ranked[0];
+  const second = ranked[1];
+
+  if (!best || best.score < MIN_SCORE) {
+    const guided = buildGeneralGuidance(searchableText);
+    if (guided) return guided;
+    const suggested = ranked
+      .filter((item) => !GENERIC_INTENTS.has(item.entry.id))
+      .slice(0, 3)
+      .map((item) => item.entry.id);
+    if (suggested.length > 0) return buildOptionPrompt(suggested);
+    return `Seni doğru anlamak istiyorum. Şu başlıklardan biriyle sorabilir misin: ${SAFE_TOPICS.join(", ")}.`;
+  }
+
+  if (
+    second &&
+    second.entry.id !== best.entry.id &&
+    best.score < 10 &&
+    second.score >= AMBIGUITY_RATIO * best.score &&
+    second.score >= 6
+  ) {
+    return buildClarification(best.entry, second.entry);
+  }
+
+  const connectorQuery = /\b(ve|ile|ayrica|aynı zamanda|hem|,)\b/.test(normalized);
+  if (
+    connectorQuery &&
+    second &&
+    second.entry.id !== best.entry.id &&
+    second.score >= 0.7 * best.score &&
+    second.score >= 6
+  ) {
+    return `${pickAnswer(best.entry.answer)}\n\n${pickAnswer(second.entry.answer)}`;
+  }
+
+  return pickAnswer(best.entry.answer);
 }
 
 export function ChatWidget() {
@@ -658,9 +1042,9 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const uiLanguage = useMemo(() => getPreferredLanguage(), []);
-  const isEnglish = uiLanguage === "en";
+  const messageCounterRef = useRef(0);
 
   // Mesajları localStorage'a kaydet
   useEffect(() => {
@@ -678,30 +1062,43 @@ export function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    const maxTimestamp = messages.reduce((max, message) => Math.max(max, message.timestamp), 0);
+    if (maxTimestamp > messageCounterRef.current) {
+      messageCounterRef.current = maxTimestamp;
+    }
+  }, [messages]);
+
   const sendMessage = (content: string) => {
     const trimmed = content.trim();
     if (!trimmed || isLoading) return;
+    messageCounterRef.current += 1;
+    const sequence = messageCounterRef.current;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `u-${sequence}`,
       role: "user",
       content: trimmed,
-      timestamp: Date.now(),
+      timestamp: sequence,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
-    const typingDelay = 250 + Math.random() * 350;
+    const typingDelay = 350;
 
     setTimeout(() => {
-      const aiResponse = findBestMatch(userMessage.content);
+      const rawResponse = findBestMatch(userMessage.content);
+      const aiResponse =
+        chatMode === "interview"
+          ? formatInterviewResponse(userMessage.content, rawResponse)
+          : rawResponse;
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `a-${sequence}`,
         role: "assistant",
         content: aiResponse,
-        timestamp: Date.now(),
+        timestamp: sequence,
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setIsLoading(false);
@@ -771,7 +1168,7 @@ export function ChatWidget() {
                     </h3>
                     <p className="text-[10px] sm:text-xs text-emerald-300/70 font-semibold tracking-wide mt-0.5 flex items-center gap-1 sm:gap-1.5">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                      {isEnglish ? "AI Assistant • Online" : "AI Asistan • Aktif"}
+                      AI Asistan • {chatMode === "interview" ? "Mülakat Modu" : "Normal Mod"}
                     </p>
                   </div>
                 </div>
@@ -782,7 +1179,7 @@ export function ChatWidget() {
                       whileTap={{ scale: 0.9 }}
                       onClick={clearHistory}
                       className="p-2 sm:p-2.5 rounded-xl hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-all duration-200 backdrop-blur active:bg-red-500/30"
-                      title={isEnglish ? "Clear chat" : "Konuşmayı temizle"}
+                      title="Konuşmayı temizle"
                     >
                       <HiTrash size={16} className="sm:w-[17px] sm:h-[17px]" />
                     </motion.button>
@@ -825,7 +1222,7 @@ export function ChatWidget() {
                   </div>
                   <div className="space-y-2">
                     <h4 className="text-[14px] sm:text-lg font-black text-white tracking-tight flex items-center justify-center gap-2">
-                      {uiLanguage === "en" ? "Welcome to Demir AI!" : "Demir AI&apos;ya Hoş Geldiniz!"}
+                      Demir AI&apos;ya Hoş Geldiniz!
                       <motion.div
                         animate={{ rotate: [0, 20, -20, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
@@ -834,19 +1231,40 @@ export function ChatWidget() {
                       </motion.div>
                     </h4>
                     <p className="text-[12px] sm:text-sm text-emerald-200/70 leading-relaxed max-w-xs px-2">
-                      {uiLanguage === "en"
-                        ? "I'm Mehmet's digital assistant. Ask about education, experience, projects, tech, or contact."
-                        : "Ben Mehmet&apos;in dijital asistanıyım. Eğitim, deneyim, projeler, teknoloji ve iletişim sorabilirsiniz."}
+                      Ben Mehmet&apos;in dijital asistanıyım. Eğitim, deneyim, projeler, teknoloji ve iletişim sorabilirsiniz.
                     </p>
+                    {chatMode === null && (
+                      <div className="mt-3 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                        <p className="text-[11px] sm:text-xs text-emerald-200/90 mb-2 font-semibold">
+                          Girişte seç: Mülakat moduna geçilsin mi?
+                        </p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setChatMode("interview")}
+                            className="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-600/30 border border-emerald-400/40 text-emerald-100 hover:bg-emerald-600/40 transition-colors"
+                          >
+                            Mülakat Modu
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setChatMode("normal")}
+                            className="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/10 border border-white/20 text-white/90 hover:bg-white/20 transition-colors"
+                          >
+                            Normal Mod
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2 justify-center mt-3 sm:mt-4">
                       {QUICK_PROMPTS.map((item) => (
                         <button
-                          key={item.label.en}
+                          key={item.label}
                           type="button"
-                          onClick={() => sendMessage(item.prompt[uiLanguage])}
+                          onClick={() => sendMessage(item.prompt)}
                           className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[11px] sm:text-xs text-emerald-300/90 backdrop-blur hover:bg-emerald-500/20 transition-colors"
                         >
-                          {item.label[uiLanguage]}
+                          {item.label}
                         </button>
                       ))}
                     </div>
@@ -904,7 +1322,7 @@ export function ChatWidget() {
                   className="flex-1 bg-[#1a1a1a]/80 backdrop-blur-xl border-2 border-emerald-500/20 rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-6 sm:py-4 text-[15px] sm:text-[17px] text-white placeholder:text-emerald-300/50 focus:outline-none focus:border-emerald-500/70 focus:ring-4 focus:ring-emerald-500/30 transition-all shadow-inner font-medium"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isEnglish ? "Ask a question..." : "Bir soru sorun..."}
+                  placeholder="Bir soru sorun..."
                   maxLength={250}
                 />
                 <motion.button
@@ -976,7 +1394,7 @@ export function ChatWidget() {
           <div className="hidden sm:block absolute right-full mr-4 px-4 py-2 bg-gradient-to-r from-emerald-600/95 to-green-700/95 backdrop-blur-xl text-white text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap pointer-events-none border border-emerald-400/30 shadow-xl shadow-emerald-500/20">
             <span className="flex items-center gap-2">
               <RiRobot2Fill className="text-yellow-300" />
-              {isEnglish ? "Chat with Demir AI" : "Demir AI ile konuş!"}
+              Demir AI ile konuş!
             </span>
           </div>
         )}

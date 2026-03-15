@@ -39,6 +39,16 @@ const experiences = [
         border: "border-red-500/30"
     },
     {
+        company: "Prep ShipHub",
+        role: "Web & Mobile Developer",
+        period: "Temmuz 2025 - Aralık 2025",
+        description: "Amerika merkezli lojistik firmasında proje bazlı React ve React Native ile kullanıcı odaklı, yüksek performanslı web ve mobil arayüzler geliştirdim.",
+        icon: HiGlobeAlt,
+        color: "text-blue-400",
+        gradient: "from-blue-500/20 to-cyan-500/20",
+        border: "border-blue-500/30"
+    },
+    {
         company: "Helikanon Yazılım",
         role: "Stajyer Yazılım Geliştirici",
         period: "Ağustos 2025 - Eylül 2025",
@@ -49,14 +59,14 @@ const experiences = [
         border: "border-yellow-500/30"
     },
     {
-        company: "Prep ShipHub",
-        role: "Web & Mobile Developer",
-        period: "Temmuz 2025 - Aralık 2025",
-        description: "Amerika merkezli lojistik firmasında Proje Bazlı React ve React Native ile kullanıcı odaklı, yüksek performanslı web ve mobil arayüzler geliştiriyorum.",
-        icon: HiGlobeAlt,
-        color: "text-blue-400",
-        gradient: "from-blue-500/20 to-cyan-500/20",
-        border: "border-blue-500/30"
+        company: "T3 Vakfı",
+        role: "Eğitmen & Mentör ",
+        period: "Ekim 2025 - Devam Ediyor",
+        description: "Ekip liderliği, teknik rehberlik ve iletişim alanlarında kendimi geliştirerek öğrencilere teknik mentörlük ve eğitim desteği veriyorum.",
+        icon: HiBriefcase,
+        color: "text-emerald-400",
+        gradient: "from-emerald-500/20 to-teal-500/20",
+        border: "border-emerald-500/30"
     }
 ];
 
