@@ -1197,7 +1197,7 @@ export function ChatWidget() {
             </div>
 
             {/* AI Chat Area - Extra Spacing */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-8 sm:py-7 space-y-3 sm:space-y-4 bg-[#0a0a0a]/50 backdrop-blur-sm scrollbar-thin scrollbar-thumb-emerald-500/30 scrollbar-track-transparent hover:scrollbar-thumb-emerald-500/50">
+            <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-9 lg:px-11 sm:py-7 space-y-3 sm:space-y-4 bg-[#0a0a0a]/50 backdrop-blur-sm scrollbar-thin scrollbar-thumb-emerald-500/30 scrollbar-track-transparent hover:scrollbar-thumb-emerald-500/50">
               {messages.length === 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1277,13 +1277,13 @@ export function ChatWidget() {
                   key={m.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex px-1 sm:px-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[78%] sm:max-w-[72%] rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-[13px] sm:text-[14.5px] leading-relaxed shadow-lg ${
+                    className={`max-w-[74%] sm:max-w-[68%] rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 text-[13px] sm:text-[14.5px] leading-relaxed shadow-lg ${
                       m.role === "user"
-                        ? "bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white font-semibold rounded-br-md shadow-emerald-500/40"
-                        : "bg-[#1a1a1a]/80 backdrop-blur-xl text-white/90 border border-emerald-500/20 rounded-bl-md whitespace-pre-line"
+                        ? "mr-2 sm:mr-3 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white font-semibold rounded-br-md shadow-emerald-500/40"
+                        : "ml-2 sm:ml-3 bg-[#1a1a1a]/80 backdrop-blur-xl text-white/90 border border-emerald-500/20 rounded-bl-md whitespace-pre-line"
                     }`}
                   >
                     {m.content}
@@ -1292,7 +1292,7 @@ export function ChatWidget() {
               ))}
 
               {isLoading && (
-                <div className="flex justify-start">
+                <div className="flex justify-start px-1 sm:px-2">
                   <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border border-emerald-500/20 px-5 py-3.5 rounded-2xl rounded-bl-md flex gap-2 items-center shadow-lg shadow-emerald-500/10">
                     <motion.span
                       animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.2, 1] }}

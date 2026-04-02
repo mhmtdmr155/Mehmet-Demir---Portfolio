@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import LoadingScreen from "@/components/LoadingScreen";
 import { CommandMenuWrapper } from "@/components/CommandMenuWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
+import { GA4PageTracker } from "@/components/GA4PageTracker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -85,11 +86,23 @@ export default function RootLayout({
   return (
     <html lang="tr" className="scroll-smooth" data-theme="dark" suppressHydrationWarning>
       <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-HT948T4R3X"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-HT948T4R3X');
+            `,
+          }}
+        />
         <link rel="preload" href="/profile.jpg" as="image" />
       </head>
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
         <LoadingScreen />
         <ThemeProvider>
+          <GA4PageTracker />
           <CommandMenuWrapper />
           <ChatWidget />
           {children}
