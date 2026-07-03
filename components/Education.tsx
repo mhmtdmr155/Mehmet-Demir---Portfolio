@@ -27,7 +27,7 @@ const education = [
     title: "Lisans",
     period: "2023 – Devam Ediyor",
     institution: "Kahramanmaraş Sütçü İmam Üniversitesi, Onikişubat, Kahramanmaraş",
-    department: "Bilgisayar Mühendisliği Bölümü, 3. Sınıf Öğrencisi",
+    department: "Bilgisayar Mühendisliği Bölümü, 4. Sınıf Öğrencisi",
     icon: "🎓",
     gradient: "from-purple-500 to-pink-500",
   },

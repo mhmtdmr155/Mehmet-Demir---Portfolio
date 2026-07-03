@@ -60,7 +60,7 @@ const experiences: ExperienceItem[] = [
         gradient: "from-red-500/20 to-pink-500/20",
         border: "border-red-500/30",
         start: { year: 2024, month: 6 },
-        end: { year: 2024, month: 8 },
+        end: { year: 2024, month: 9 },
     },
     {
         company: "Prep ShipHub",
@@ -96,6 +96,28 @@ const experiences: ExperienceItem[] = [
         gradient: "from-emerald-500/20 to-teal-500/20",
         border: "border-emerald-500/30",
         start: { year: 2025, month: 10 },
+    },
+    {
+        company: "ATN Yazılım",
+        role: "Stajyer Yazılım Geliştirici",
+        period: "Haziran 2026 - Devam Ediyor",
+        description: "Şirkete yönelik web ve mobil uygulamalar geliştirdim. Ayrıca vertigo hastalığı tespitinden çıkarılan hareket grafiğinin oluşturulması projesinde yer aldım.",
+        icon: HiLightningBolt,
+        color: "text-blue-400",
+        gradient: "from-blue-500/20 to-indigo-500/20",
+        border: "border-blue-500/30",
+        start: { year: 2026, month: 6 },
+    },
+    {
+        company: "ElectromTech",
+        role: "Donanım Stajyeri",
+        period: "Ağustos 2026 - Devam Ediyor",
+        description: "Elektrik-elektronik ve donanım üzerine staj çalışmalarımı gerçekleştiriyorum.",
+        icon: HiChip,
+        color: "text-orange-400",
+        gradient: "from-orange-500/20 to-red-500/20",
+        border: "border-orange-500/30",
+        start: { year: 2026, month: 8 },
     }
 ];
 

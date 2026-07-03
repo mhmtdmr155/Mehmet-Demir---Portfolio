@@ -47,6 +47,24 @@ const projects = [
     link: "https://github.com/mhmtdmr155/Restaurant-Order-Tracking-System",
     gradient: "from-green-500 to-emerald-500",
   },
+  {
+    title: "Atık Yönetimi Sistemi",
+    description: "Kahramanmaraş Onikişubat Belediyesi için doğrudan kullanılmak üzere uyarlanan atık yönetim sistemi projesi.",
+    image: "♻️",
+    imageUrl: null,
+    technologies: ["React", "Next.js", "TypeScript", "Tailwind CSS"],
+    link: "https://github.com/atik-yonetimi/atik-yonetimi",
+    gradient: "from-teal-500 to-green-500",
+  },
+  {
+    title: "Elektronik Raf Sistemi",
+    description: "Elektronik raf etiketleme (ESL) için donanım ve yazılım destekli sistem projesi.",
+    image: "🏷️",
+    imageUrl: null,
+    technologies: ["C++", "IoT", "Hardware", "React"],
+    link: "https://github.com/Elektronik-Raf-Etiketi",
+    gradient: "from-blue-500 to-cyan-500",
+  }
 ];
 
 export default function Projects() {

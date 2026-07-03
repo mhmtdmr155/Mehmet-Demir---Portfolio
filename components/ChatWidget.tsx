@@ -471,7 +471,7 @@ const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     id: "summary",
     keywords: ["mehmet kim", "mehmet nasil bir", "mehmet nasil biri", "hakkinda", "kendini tanit", "kısaca", "kisaca"],
     answer: [
-      "Mehmet Demir: KSÜ Bilgisayar Müh. 3. sınıf öğrencisi (GNO 2.84). React/React Native ve Python/AI odaklı yazılım geliştirici adayı.",
+      "Mehmet Demir: KSÜ Bilgisayar Müh. 4. sınıf öğrencisi (GNO 2.84). React/React Native ve Python/AI odaklı yazılım geliştirici adayı.",
       "Kısaca Mehmet: web+mobil geliştirme ve yapay zeka tarafında çalışan, proje odaklı bir bilgisayar mühendisliği öğrencisi.",
     ],
   },
@@ -479,16 +479,16 @@ const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     id: "education",
     keywords: ["egitim", "üniversite", "universite", "okul", "gno", "not ortalamasi", "hazirlik", "lise"],
     answer: [
-      "Eğitim: KSÜ Bilgisayar Mühendisliği 3. sınıf (GNO 2.84). İngilizce hazırlık B2. Lise: Gaziantep Yavuzeli Şehit Ali Çiftçi.",
-      "KSÜ Bilgisayar Müh. öğrencisi (3. sınıf). GNO 2.84, İngilizce seviyesi B2.",
+      "Eğitim: KSÜ Bilgisayar Mühendisliği 4. sınıf (GNO 2.84). İngilizce hazırlık B2. Lise: Gaziantep Yavuzeli Şehit Ali Çiftçi.",
+      "KSÜ Bilgisayar Müh. öğrencisi (4. sınıf). GNO 2.84, İngilizce seviyesi B2.",
     ],
   },
   {
     id: "experience",
     keywords: ["deneyim", "is deneyimi", "kariyer", "staj", "calisma", "çalışma", "nerede calisti"],
     answer: [
-      "Deneyim: Freelance (2023–devam), Teknofest İstiklal SİHA, Work and Travel USA, Prep ShipHub, Helikanon stajı ve T3 Vakfı'nda part-time Eğitmen & Mentör (Ekim 2025–devam).",
-      "Özet deneyim: Web/mobil geliştirme, teknik mentörlük, ekip liderliği ve iletişim becerilerini birlikte geliştiren çok yönlü bir deneyim yapısı var.",
+      "Deneyim: ATN Yazılım ve ElectromTech Stajları, Freelance (2023–devam), Teknofest İstiklal SİHA, Work and Travel USA, Prep ShipHub, Helikanon ve T3 Vakfı'nda mentörlük.",
+      "Özet deneyim: Web/mobil geliştirme, donanım, teknik mentörlük ve global iletişim becerilerini birleştiren çok yönlü bir deneyim yapısı var.",
     ],
   },
   {
@@ -505,6 +505,22 @@ const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     answer: [
       "Helikanon Yazılım: Stajyer Yazılım Geliştirici (Ağu–Eyl 2025). Kurumsal web/mobil projelere katkı sağladı.",
       "Helikanon’da staj döneminde proje süreçlerine aktif katıldı.",
+    ],
+  },
+  {
+    id: "atnYazilim",
+    keywords: ["atn yazilim", "atn yazılım", "atn"],
+    answer: [
+      "ATN Yazılım: Stajyer Yazılım Geliştirici (Haziran 2026 - Devam Ediyor). Şirkete yönelik web ve app uygulamaları geliştirdi ve vertigo hastalığı hareket grafiği projesinde yer aldı.",
+      "ATN Yazılım stajında web/mobil geliştirme ve sağlık teknolojileri (vertigo hareket grafiği) üzerine çalışıyor.",
+    ],
+  },
+  {
+    id: "electromTech",
+    keywords: ["electromtech", "electrom tech", "donanim staji", "elektrik elektronik staji"],
+    answer: [
+      "ElectromTech: Donanım Stajyeri (Ağustos 2026 - Devam Ediyor). Elektrik-elektronik ve donanım üzerine staj çalışmalarını yürütüyor.",
+      "ElectromTech bünyesinde donanım ve elektrik-elektronik stajı yapıyor.",
     ],
   },
   {
@@ -543,8 +559,22 @@ const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     id: "projects",
     keywords: ["proje", "projeler", "projelerini", "github", "portfoy", "portfolio", "tek tek say", "listele"],
     answer: [
-      "Öne çıkan projeler: YouTube Success Predictor, Product Manager, Mayın Tarlası, Restaurant Order Tracking.",
-      "Projeler tarafında web, mobil ve makine öğrenimi odaklı gerçek ürün/prototip çalışmaları var.",
+      "Öne çıkan projeler: Atık Yönetimi Sistemi, Elektronik Raf Sistemi, YouTube Success Predictor, Product Manager, Mayın Tarlası, Restaurant Order Tracking.",
+      "Projeler tarafında web, mobil, donanım (IoT) ve makine öğrenimi odaklı gerçek ürün/prototip çalışmaları var.",
+    ],
+  },
+  {
+    id: "atikYonetimi",
+    keywords: ["atik yonetimi", "atık yönetimi", "belediye", "onikisubat"],
+    answer: [
+      "Atık Yönetimi Sistemi: Kahramanmaraş Onikişubat Belediyesi için doğrudan kullanılmak üzere uyarlanan atık yönetim projesi.",
+    ],
+  },
+  {
+    id: "elektronikRaf",
+    keywords: ["elektronik raf", "raf sistemi", "raf etiketi", "esl"],
+    answer: [
+      "Elektronik Raf Sistemi: Elektronik raf etiketleme (ESL) donanım ve yazılım destekli sistem projesi.",
     ],
   },
   {

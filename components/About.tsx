@@ -92,13 +92,13 @@ export default function About() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-2">
-                    Bilgisayar Mühendisliği Öğrencisi
+                    Yazılım Geliştirici & Bilgisayar Mühendisliği Öğrencisi
                   </h3>
                   <p className="text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed">
-                    <span className="font-semibold text-[var(--text-primary)]">Kahramanmaraş Sütçü İmam Üniversitesi</span> - <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] text-sm font-semibold">3. Sınıf</span>
+                    <span className="font-semibold text-[var(--text-primary)]">Kahramanmaraş Sütçü İmam Üniversitesi</span> - <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] text-sm font-semibold">4. Sınıf</span>
                   </p>
-                  <p className="text-sm sm:text-base text-[var(--text-tertiary)] mt-2 italic">
-                    Web, Mobil ve Yapay Zeka teknolojilerine odaklanarak teknolojinin geleceğini şekillendiriyorum.
+                  <p className="text-sm sm:text-base text-[var(--text-tertiary)] mt-3">
+                    Modern web teknolojileri, cross-platform mobil uygulamalar ve yapay zeka alanlarında inovatif çözümler üretiyorum. Teorik bilgiyi gerçek dünya ürünlerine dönüştürmek en büyük tutkum.
                   </p>
                 </div>
               </div>
