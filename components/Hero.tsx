@@ -5,6 +5,8 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { HiDownload, HiMail } from "react-icons/hi";
 import { FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
+import MagneticButton from "./MagneticButton";
+import MouseGlow from "./MouseGlow";
 
 const socialLinks = [
   { icon: FaGithub, href: "https://github.com/mhmtdmr155", label: "GitHub" },
@@ -28,6 +30,7 @@ export default function Hero() {
 
   return (
     <section className="relative w-full min-h-[75vh] lg:min-h-[80vh] overflow-hidden bg-[var(--bg-primary)] py-8 sm:py-10 lg:py-12 flex items-center">
+      <MouseGlow />
       <div className="absolute inset-0 bg-gradient-to-br from-[rgba(0,243,255,0.05)] via-transparent to-[rgba(112,0,255,0.1)]" />
       <div className="absolute -left-10 -top-20 w-[500px] h-[500px] rounded-full bg-[rgba(0,243,255,0.08)] blur-3xl" />
       <div className="absolute right-0 bottom-[-120px] w-[600px] h-[600px] rounded-full bg-[rgba(112,0,255,0.09)] blur-3xl" />
@@ -112,33 +115,37 @@ export default function Hero() {
               </div>
 
               <div className="flex flex-wrap justify-center gap-4 pt-10">
-                <a
-                  href="#iletisim"
-                  className="px-8 py-4 bg-[var(--accent-primary)] text-black rounded-xl font-bold text-base sm:text-lg border border-[var(--accent-primary)]/30 transition-all hover:bg-[var(--accent-primary)]/90 hover:scale-105 shadow-[0_10px_40px_rgba(0,243,255,0.3)]"
-                >
-                  <div className="flex items-center justify-center gap-2.5">
-                    <HiMail size={22} />
-                    <span>İletişime Geç</span>
-                  </div>
-                </a>
-                <button
-                  onClick={() => {
-                    try {
-                      const link = document.createElement("a");
-                      link.href = "/MEHMET DEMİR CV.pdf";
-                      link.download = "MEHMET DEMİR CV.pdf";
-                      link.click();
-                    } catch {
-                      window.open("/MEHMET DEMİR CV.pdf", "_blank");
-                    }
-                  }}
-                  className="px-8 py-4 bg-transparent border-2 border-[var(--accent-primary)]/50 rounded-xl font-bold text-base sm:text-lg text-white transition-all hover:bg-white/5 hover:border-[var(--accent-primary)] hover:scale-105 shadow-lg"
-                >
-                  <div className="flex items-center justify-center gap-2.5">
-                    <HiDownload size={22} />
-                    <span>CV İndir</span>
-                  </div>
-                </button>
+                <MagneticButton intensity={0.2}>
+                  <a
+                    href="#iletisim"
+                    className="px-8 py-4 bg-[var(--accent-primary)] text-black rounded-xl font-bold text-base sm:text-lg border border-[var(--accent-primary)]/30 transition-all hover:bg-[var(--accent-primary)]/90 shadow-[0_10px_40px_rgba(0,243,255,0.3)] block"
+                  >
+                    <div className="flex items-center justify-center gap-2.5">
+                      <HiMail size={22} />
+                      <span>İletişime Geç</span>
+                    </div>
+                  </a>
+                </MagneticButton>
+                <MagneticButton intensity={0.2}>
+                  <button
+                    onClick={() => {
+                      try {
+                        const link = document.createElement("a");
+                        link.href = "/MEHMET DEMİR CV.pdf";
+                        link.download = "MEHMET DEMİR CV.pdf";
+                        link.click();
+                      } catch {
+                        window.open("/MEHMET DEMİR CV.pdf", "_blank");
+                      }
+                    }}
+                    className="px-8 py-4 bg-transparent border-2 border-[var(--accent-primary)]/50 rounded-xl font-bold text-base sm:text-lg text-white transition-all hover:bg-white/5 hover:border-[var(--accent-primary)] shadow-lg block"
+                  >
+                    <div className="flex items-center justify-center gap-2.5">
+                      <HiDownload size={22} />
+                      <span>CV İndir</span>
+                    </div>
+                  </button>
+                </MagneticButton>
               </div>
             </div>
           </div>

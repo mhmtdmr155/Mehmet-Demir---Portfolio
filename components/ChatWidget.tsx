@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { HiX, HiPaperAirplane, HiSparkles, HiTrash } from "react-icons/hi";
+import { HiX, HiPaperAirplane, HiSparkles, HiTrash, HiVolumeUp, HiVolumeOff, HiMicrophone } from "react-icons/hi";
 import { RiRobot2Fill } from "react-icons/ri";
 
 interface Message {
@@ -11,6 +11,16 @@ interface Message {
   content: string;
   timestamp: number;
 }
+
+const renderMessageContent = (content: string) => {
+  const parts = content.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="text-emerald-300 font-bold">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
 
 function getInitialMessages(): Message[] {
   if (typeof window === "undefined") return [];
@@ -1073,8 +1083,57 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode | null>(null);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageCounterRef = useRef(0);
+
+  const speak = (text: string) => {
+    if (!isVoiceEnabled || typeof window === "undefined" || !window.speechSynthesis) return;
+    
+    window.speechSynthesis.cancel();
+
+    let cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/gu, '');
+    cleanText = cleanText.replace(/[*#]/g, '');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "tr-TR";
+    
+    const voices = window.speechSynthesis.getVoices();
+    const trVoice = voices.find(v => v.lang.includes("tr"));
+    if (trVoice) utterance.voice = trVoice;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleListen = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tarayıcınız sesli komut özelliğini desteklemiyor.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "tr-TR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
 
   // Mesajları localStorage'a kaydet
   useEffect(() => {
@@ -1116,23 +1175,64 @@ export function ChatWidget() {
     setInput("");
     setIsLoading(true);
 
-    const typingDelay = 350;
+    const fetchAIResponse = async () => {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })) 
+          })
+        });
 
-    setTimeout(() => {
-      const rawResponse = findBestMatch(userMessage.content);
-      const aiResponse =
-        chatMode === "interview"
-          ? formatInterviewResponse(userMessage.content, rawResponse)
-          : rawResponse;
-      const assistantMessage: Message = {
-        id: `a-${sequence}`,
-        role: "assistant",
-        content: aiResponse,
-        timestamp: sequence,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, typingDelay);
+        if (!response.ok) throw new Error("API Hatası");
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let aiResponse = "";
+        
+        const assistantId = `a-${sequence}`;
+        setMessages((prev) => [...prev, {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          timestamp: sequence,
+        }]);
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter(Boolean);
+            for (const line of lines) {
+              if (line.startsWith('0:')) {
+                try {
+                  const text = JSON.parse(line.slice(2));
+                  aiResponse += text;
+                  setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: aiResponse } : m));
+                } catch (e) {}
+              }
+            }
+          }
+        }
+        setIsLoading(false);
+        speak(aiResponse);
+      } catch (error) {
+        console.error(error);
+        const fallbackResponse = findBestMatch(userMessage.content);
+        setMessages((prev) => [...prev, {
+          id: `a-${sequence}`,
+          role: "assistant",
+          content: fallbackResponse,
+          timestamp: sequence,
+        }]);
+        setIsLoading(false);
+        speak(fallbackResponse);
+      }
+    };
+
+    fetchAIResponse();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1189,12 +1289,20 @@ export function ChatWidget() {
                   <div className="flex-1">
                     <h3 className="font-black text-white text-sm sm:text-base tracking-tight flex items-center gap-1.5 sm:gap-2">
                       Demir AI
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      >
-                        <HiSparkles className="text-emerald-400 w-3.5 h-3.5 sm:w-4 sm:h-4 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                      </motion.div>
+                      {isSpeaking ? (
+                        <div className="flex items-center gap-0.5 h-3 ml-1">
+                          <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-1 bg-emerald-400 rounded-full" />
+                          <motion.div animate={{ height: [6, 14, 6] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 bg-emerald-400 rounded-full" />
+                          <motion.div animate={{ height: [3, 10, 3] }} transition={{ repeat: Infinity, duration: 0.4 }} className="w-1 bg-emerald-400 rounded-full" />
+                        </div>
+                      ) : (
+                        <motion.div
+                          animate={{ rotate: [0, 360] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        >
+                          <HiSparkles className="text-emerald-400 w-3.5 h-3.5 sm:w-4 sm:h-4 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                        </motion.div>
+                      )}
                     </h3>
                     <p className="text-[10px] sm:text-xs text-emerald-300/70 font-semibold tracking-wide mt-0.5 flex items-center gap-1 sm:gap-1.5">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
@@ -1203,6 +1311,18 @@ export function ChatWidget() {
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 sm:gap-1">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setIsVoiceEnabled(!isVoiceEnabled);
+                      if (isVoiceEnabled && typeof window !== 'undefined') window.speechSynthesis.cancel();
+                    }}
+                    className="p-2 sm:p-2.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-all duration-200 active:bg-white/20"
+                    title={isVoiceEnabled ? "Sesi Kapat" : "Sesi Aç"}
+                  >
+                    {isVoiceEnabled ? <HiVolumeUp size={18} className="sm:w-5 sm:h-5 text-emerald-400" /> : <HiVolumeOff size={18} className="sm:w-5 sm:h-5" />}
+                  </motion.button>
                   {messages.length > 0 && (
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -1316,7 +1436,7 @@ export function ChatWidget() {
                         : "ml-2 sm:ml-3 bg-[#1a1a1a]/80 backdrop-blur-xl text-white/90 border border-emerald-500/20 rounded-bl-md whitespace-pre-line"
                     }`}
                   >
-                    {m.content}
+                    {renderMessageContent(m.content)}
                   </div>
                 </motion.div>
               ))}
@@ -1355,6 +1475,16 @@ export function ChatWidget() {
                   placeholder="Bir soru sorun..."
                   maxLength={250}
                 />
+                <motion.button
+                  type="button"
+                  onClick={handleListen}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-3 py-3 sm:px-4 sm:py-4 rounded-2xl sm:rounded-3xl transition-all border-2 border-emerald-400/40 shadow-xl ${isListening ? 'bg-red-500 animate-pulse text-white' : 'bg-gradient-to-br from-emerald-600 to-green-700 text-white hover:shadow-emerald-500/50'}`}
+                  title="Sesli Sor"
+                >
+                  <HiMicrophone className="w-6 h-6 sm:w-7 sm:h-7" />
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   whileTap={{ scale: 0.95 }}
