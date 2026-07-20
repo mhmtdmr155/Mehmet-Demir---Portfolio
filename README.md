@@ -1,167 +1,89 @@
-# Kişisel Portföy Web Sitesi
+# 🌐 Mehmet Demir — Personal Portfolio Web App
 
-Modern, responsive ve animasyonlu kişisel portföy web sitesi. Next.js, TypeScript, Tailwind CSS ve Framer Motion kullanılarak geliştirilmiştir.
+<div align="center">
 
-## 🚀 Özellikler
+[![Live Demo](https://img.shields.io/badge/Live_Site-mehmetdemir.blog-2ea44f?style=for-the-badge&logo=google-chrome&logoColor=white)](https://mehmetdemir.blog/)
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
 
-- ✨ Modern ve temiz tasarım
-- 📱 Tam responsive (mobil, tablet, desktop)
-- 🎨 Smooth animasyonlar (Framer Motion)
-- 🧭 Smooth scroll navigasyon
-- 📄 Tüm bölümler: Hakkımda, Eğitim, Projeler, Kurslar, Sertifikalar, Referanslar, İletişim
-- 🎯 SEO optimizasyonu
-- ⚡ Hızlı yükleme (Next.js optimizasyonları)
+</div>
 
-## 🛠️ Teknolojiler
+---
 
-- **Next.js 16** - React framework
-- **TypeScript** - Tip güvenliği
-- **Tailwind CSS** - Styling
-- **Framer Motion** - Animasyonlar
-- **React Icons** - İkonlar
+## 🔗 Canlı Web Sitesi / Live Website
 
-## 📦 Kurulum
+🚀 **Portfolyo web sitemi canlı olarak ziyaret edin:**  
+👉 **[https://mehmetdemir.blog/](https://mehmetdemir.blog/)**
 
-1. Projeyi klonlayın veya indirin
-2. Bağımlılıkları yükleyin:
+---
+
+## 📌 Proje Hakkında / About The Project
+
+Modern, duyarlı (responsive) ve akıcı animasyonlara sahip kişisel portfolyo web sitesi. **Next.js 16**, **TypeScript**, **Tailwind CSS** ve **Framer Motion** kullanılarak geliştirilmiştir.
+
+> Modern and responsive personal portfolio website featuring smooth animations, clean section layouts, and interactive contact functionality.
+
+---
+
+## ✨ Özellikler / Key Features
+
+- 📱 **Tam Duyarlı (Responsive):** Mobil, tablet ve masaüstü cihazlar için tam uyumlu görünüm.
+- 🎨 **Akıcı Animasyonlar:** Framer Motion ile zenginleştirilmiş kullanıcı deneyimi.
+- 🧭 **Smooth Scroll Navigasyon:** Bölümler arası yumuşak geçiş.
+- 📄 **Zengin Bölümler:** Hakkımda, Projeler, Eğitim, Sertifikalar, Kurslar ve İletişim.
+- 📬 **İnteraktif İletişim Formu:** EmailJS entegrasyonu ve spam koruması (Rate Limiting).
+- ⚡ **SEO & Performans:** Next.js Server Side Rendering ve optimizasyonlar.
+
+---
+
+## 🛠️ Kullanılan Teknolojiler / Tech Stack
+
+- **Framework:** Next.js 16 (React 19)
+- **Dil:** TypeScript
+- **Stillendirme:** Tailwind CSS & Lucide / React Icons
+- **Animasyon:** Framer Motion
+- **Form Servisi:** EmailJS
+
+---
+
+## 📁 Proje Yapısı / Project Structure
 
 ```bash
-npm install
+Mehmet-Demir---Portfolio/
+├── app/            # Next.js App Router & Layout
+├── components/     # Modüler UI Bileşenleri (Hero, About, Projects vs.)
+├── public/         # Görsel ve Statik Dosyalar (CV, resimler)
+└── next.config.ts  # Next.js Yapılandırması
 ```
 
-3. Geliştirme sunucusunu başlatın:
+---
 
-```bash
-npm run dev
-```
+## 🚀 Yerel Geliştirme / Local Setup
 
-4. Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın
-
-## ✏️ Kişiselleştirme
-
-### Bilgilerinizi Güncelleme
-
-1. **Hero Bölümü** (`components/Hero.tsx`):
-   - Adınızı ve soyadınızı güncelleyin
-   - Sosyal medya linklerinizi ekleyin
-
-2. **Hakkımda Bölümü** (`components/About.tsx`):
-   - Kendiniz hakkında bilgileri güncelleyin
-
-3. **Eğitim Bölümü** (`components/Education.tsx`):
-   - Eğitim bilgilerinizi ekleyin
-
-4. **Projeler Bölümü** (`components/Projects.tsx`):
-   - Projelerinizi ekleyin veya düzenleyin
-
-5. **Kurslar** (`components/Courses.tsx`):
-   - Aldığınız kursları ekleyin
-
-6. **Sertifikalar** (`components/Certificates.tsx`):
-   - Sertifikalarınızı ekleyin
-
-7. **Referanslar** (`components/References.tsx`):
-   - Referans bilgilerinizi ekleyin
-
-8. **İletişim** (`components/Contact.tsx`):
-   - Sosyal medya linklerinizi güncelleyin
-   - EmailJS ile form gönderme işlevi aktif (kurulum aşağıda)
-
-9. **Footer** (`components/Footer.tsx`):
-   - Adınızı güncelleyin
-
-10. **Metadata** (`app/layout.tsx`):
-    - Site başlığı ve açıklamasını güncelleyin
-
-## 🌐 Yayınlama (Deployment)
-
-### Netlify ile Yayınlama (Alternatif)
-
-1. GitHub'a yükleyin (yukarıdaki adımlar)
-2. [netlify.com](https://netlify.com) adresine gidin
-3. "Add new site" > "Import an existing project"
-4. GitHub repository'nizi seçin
-5. Build ayarları:
-   - Build command: `npm run build`
-   - Publish directory: `.next`
-6. "Deploy site" butonuna tıklayın
-
-### GitHub Pages ile Yayınlama
-
-1. `next.config.ts` dosyasını düzenleyin:
-   ```typescript
-   const nextConfig = {
-     output: 'export',
-     images: {
-       unoptimized: true,
-     },
-   };
-   ```
-
-2. Build alın:
+1. **Bağımlılıkları yükleyin:**
    ```bash
-   npm run build
+   npm install
    ```
 
-3. `out` klasörünü GitHub Pages'e yükleyin
+2. **Geliştirme sunucusunu başlatın:**
+   ```bash
+   npm run dev
+   ```
 
-## 📧 EmailJS Kurulumu (Contact Form)
+---
 
-Contact form EmailJS ile entegre edilmiştir. Kurulum için:
+## 👨‍💻 Geliştirici / Author
 
-1. **EmailJS Hesabı Oluşturun:**
-   - [emailjs.com](https://www.emailjs.com) adresine gidin
-   - Ücretsiz hesap oluşturun
+**Mehmet Demir** — *Front-End Developer*
 
-2. **Email Service Ekleyin:**
-   - Dashboard'da "Email Services" bölümüne gidin
-   - Gmail, Outlook veya başka bir servis ekleyin
-   - Service ID'yi not edin
+* 🌐 **Website & Blog:** [mehmetdemir.blog](https://mehmetdemir.blog/)
+* 💼 **LinkedIn:** [Mehmet Demir](https://www.linkedin.com/in/mehmet-demir-35b720207)
+* 🐙 **GitHub:** [@mhmtdmr155](https://github.com/mhmtdmr155)
 
-3. **Email Template Oluşturun:**
-   - "Email Templates" bölümüne gidin
-   - "Create New Template" butonuna tıklayın
-   - Template içeriğini düzenleyin:
-     ```
-     Konu: Yeni İletişim Formu Mesajı
-     
-     İsim: {{from_name}}
-     Email: {{from_email}}
-     Mesaj: {{message}}
-     Duygu: {{feeling}}
-     ```
-   - Template ID'yi not edin
+---
 
-4. **Public Key Alın:**
-   - "Account" > "General" bölümünden Public Key'i kopyalayın
+## 📄 Lisans / License
 
-5. **Environment Variables Ayarlayın:**
-   - Proje root dizininde `.env.local` dosyası oluşturun:
-     ```env
-     NEXT_PUBLIC_EMAILJS_SERVICE_ID=your_service_id
-     NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=your_template_id
-     NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
-     ```
-   - Değerleri yukarıda not ettiğiniz bilgilerle doldurun
-
-6. **Test Edin:**
-   - `npm run dev` ile projeyi çalıştırın
-   - Contact formunu doldurup gönderin
-   - Email'inizin gelen kutusunu kontrol edin
-
-**Not:** `.env.local` dosyası Git'e commit edilmemelidir (zaten `.gitignore`'da olmalı).
-
-## 📝 Notlar
-
-- ✅ Contact form EmailJS ile backend entegrasyonu yapılmıştır
-- CV indirme linkini `public` klasörüne CV dosyanızı ekleyerek aktif edebilirsiniz
-- Proje görselleri için `public` klasörünü kullanabilirsiniz
-- Rate limiting: Form 10 saniyede bir gönderim yapılabilir (spam koruması)
-
-## 📄 Lisans
-
-Bu proje kişisel kullanım için oluşturulmuştur.
-
-## 🙏 Teşekkürler
-
-İlham alınan site: [erenkadiroglu.com](https://erenkadiroglu.com)
+Kişisel kullanım içindir. All rights reserved © Mehmet Demir.
